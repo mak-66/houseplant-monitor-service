@@ -1,0 +1,68 @@
+/* Global styles */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    position:fixed;
+	left:0;
+	top:0;
+	right:0;
+  }
+  
+  /* Container for the whole page */
+  .container {
+    width: 90%;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  /* Title at the top */
+  h1 {
+    font-family: 'Monotype Corsiva', cursive;
+    text-align: center;
+    font-size: 4em;
+    margin-bottom: 20px;
+    color: #333;
+  }
+  
+  /* Gallery grid setup */
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* responsive grid */
+    gap: 20px; /* Space between items */
+    justify-content: center; /* Center align the items */
+  }
+  
+  /* Style for individual image items */
+  .image-item {
+    background-color: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+    transition: transform 0.1s ease-out
+  }
+  
+  /* Image styling */
+  .image-item img {
+    width: 100%; /* Allow image to stretch */
+    height: 300px; /* Fixed height */
+    object-fit: cover; /* Maintain aspect ratio */
+    margin-bottom: 10px; /* Space between image and description */
+    
+  }
+
+  .image-item:hover {
+    transform: scale(1.04); /* Slightly increase size on hover */
+    transition: transform 0.2s ease-in;
+  }
+
+  /* Description text styling */
+  .description {
+    font-size: 1em;
+    color: #666;
+    text-align: center;
+    margin: 0;
+  }
+  
