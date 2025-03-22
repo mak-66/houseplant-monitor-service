@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { houseplantService } from '../../services/houseplant-service.service';
 
 @Component({
   selector: 'app-login',
@@ -9,9 +10,14 @@ import { Router } from '@angular/router';
   styleUrl: './gallery.component.css'
 })
 export class GalleryComponent {
+  houseplantService = inject(houseplantService);
   router = inject(Router);
 
   async onPress(): Promise<void> {
     this.router.navigate(['/detail']);  // Navigate to the profile page
+  }
+
+  async signOut(): Promise<void>{
+    await this.houseplantService.logout();
   }
 }

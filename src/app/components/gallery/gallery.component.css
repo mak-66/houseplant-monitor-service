@@ -1,18 +1,11 @@
 /* Global styles */
 body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f4f4f4;
-    position:absolute;
-    left:0;
-    top:0;
-    right:0;
+  font-family: Arial, sans-serif;
   }
   
   /* Container for the whole page */
   .container {
-    width: 90%;
+    width: 100%;
     max-width: 1200px;
     margin: 0 auto;
   }
@@ -23,7 +16,18 @@ body {
     text-align: center;
     font-size: 4em;
     margin-bottom: 20px;
-    color: #333;
+    color: #2f2d2b;
+    text-shadow: 
+    -1px -1px 0 #fff,  
+    1px -1px 0 #fff,
+    -1px 1px 0 #fff,
+    1px 1px 0 #fff; /* White outline */
+    
+  }
+  .h1 {
+    background-image: url("https://img.freepik.com/premium-photo/asymmetrical-horizontal-seamless-border-with-green-leaves-twisted-vines-skunkvine-tropical-plant_1288284-19663.jpg");
+    background-size: cover; 
+    background-position: center;
   }
   
   /* Gallery grid setup */
@@ -66,3 +70,12 @@ body {
     margin: 0;
   }
   
+  .signout {
+    margin-top: 10px;
+    text-align: right;
+    text-decoration: none;
+    display: block;
+    font-size: 16px;
+    border: none;
+    cursor: pointer;
+  }
