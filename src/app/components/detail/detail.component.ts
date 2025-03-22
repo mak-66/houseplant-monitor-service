@@ -1,12 +1,18 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { FormsModule } from '@angular/forms'; // Import FormsModule
+import { houseplantService } from '../../services/houseplant-service.service';
 
 @Component({
   selector: 'app-detail',
   standalone: true,
-  imports: [],
+  imports: [FormsModule],
   templateUrl: './detail.component.html',
   styleUrl: './detail.component.css'
 })
 export class DetailComponent {
 
+  onSubmit(): void{
+    // Handle form submission logic here
+  }
 }

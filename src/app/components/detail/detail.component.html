@@ -1,1 +1,40 @@
-<p>detail works!</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <link rel="stylesheet" href="detail.component.css"> <!-- Link to the external CSS file -->
+</head>
+<body>
+
+    <div class="outer-box">
+        <div class="inner-box">
+            <h2>Controls</h2>
+            <div class="headings">
+                <p>Set Water Oz</p>
+                <p>Set Light Hrs</p>
+            </div>
+            <form (ngSubmit)="onSubmit()">
+                <input type="text" class="input-field" placeholder="1" >
+                <input type="text" class="input-field" placeholder="5">
+            </form>
+            <form (ngSubmit)="onSubmit()">
+                <button type="submit" class="login-button">Submit</button>
+                <button type="submit" class="login-button">Submit</button>
+            </form>
+            <form (ngSubmit)="onSubmit()">
+                <button type="submit" class="water-button">Water</button>
+                <button type="submit" class="light-button">Light</button>
+            </form>
+                
+            
+            
+            
+    
+        </div>
+        <div class="image-container"></div> <!-- The image will be added via CSS now -->
+    </div>
+
+</body>
+</html>
