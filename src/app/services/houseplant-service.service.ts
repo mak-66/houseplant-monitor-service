@@ -3,6 +3,7 @@ import { Timestamp, query, orderBy, where, addDoc, deleteDoc, getDoc, getDocs, s
 import { User, Auth, getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "@angular/fire/auth";
 import { Observable, firstValueFrom,map,BehaviorSubject, combineLatest } from 'rxjs';
 import { Router } from '@angular/router';
+import { MqttService } from './mqtt.service';
 
 
 export interface Account {
@@ -16,6 +17,7 @@ export interface Plant {
   minimumMoisture: number;
   waterVolume: number;
   waterLog: Timestamp[];
+  moistureLevel: number;
   lightLog: number[];
 }
 
@@ -30,8 +32,10 @@ export class houseplantService {
   currentAccount: Account | null = null;
   plantCollection: CollectionReference;
   public plants$: Observable<Plant[]>; 
+  public ownedPlantsData: Plant[] = [];
   accountCollection: CollectionReference;
   public accounts$: Observable<Account[]>;
+  private mqttService: MqttService = inject(MqttService); // Inject the MqttService
   
   constructor() {
     // Fetch all accounts from Firestore
@@ -49,7 +53,7 @@ export class houseplantService {
     const accountsQuery = query(this.accountCollection.withConverter(accountConverter));
     this.accounts$ = collectionData<Account>(accountsQuery); // Observable of all accounts
     
-    //fetches only the plants owned by the current account
+    //fetches all the plants from Firestore
     this.plantCollection = collection(this.firestore, 'Plants');
     const plantConverter = {
       toFirestore: (plant: Plant) => plant,
@@ -69,11 +73,27 @@ export class houseplantService {
       this.plantCollection.withConverter(plantConverter));
     this.plants$ = collectionData<Plant>(q);    
 
+    // Combine the accounts and plants observables to get the current account's plants
+    this.fetchAccountPlants().then(plants => { this.ownedPlantsData = plants; });   
+
     // Listen for auth state changes and set the user property
     onAuthStateChanged(this.auth, (currentUser) => {
       this.user = currentUser;
       console.log('Auth state changed, user is now:', this.user);
     });
+
+    // subscribe to the plant topics for the current account's plants
+    this.subscribeToPlantData();
+
+    // Listen for incoming messages
+    this.mqttService.messages$.subscribe((message) => {
+      if (!message) return; // Ignore null messages
+      console.log('Received MQTT message:', message);
+      this.handleMqttMessage(message);
+    });
+
+    // Monitor + Publish instructions to maintain plant conditions every n milliseconds
+    setInterval(() => this.monitorPlantConditions(), 30000);
   }  
   
   async addPlant(newPlant: Partial<Plant>): Promise<string> {
@@ -186,7 +206,6 @@ export class houseplantService {
       throw error;
     }
   }
-  
 
   async fetchAccountPlants(): Promise<Plant[]> {
     try {
@@ -219,6 +238,49 @@ export class houseplantService {
     } catch (error) {
       console.error('Error fetching account plants:', error);
       throw error;
+    }
+  }
+
+  subscribeToPlantData(): void {
+    // subscribes to the MQTT topic for all plants owned by the current account
+    for (let i = 0; i < this.ownedPlantsData.length; i++) {
+      const plant = this.ownedPlantsData[i];
+      this.mqttService.subscribe('cs326/plantMonitor/${plant.name}/out');
+    }
+  }
+
+  private handleMqttMessage(message: string) {
+    try {
+      if (message.startsWith('')) {
+        
+      } else {
+        console.log('Received unrecognized MQTT message:', message);
+      }
+    } catch (error) {
+      console.error('Error parsing MQTT message:', error);
+    }
+  }
+
+  private async monitorPlantConditions(): Promise<void> {
+    try {
+      if (!this.currentAccount) {
+        console.warn('No logged-in user, skipping plant monitoring.');
+        return;
+      }
+  
+      // Fetch latest plant data
+      const plants = await this.fetchAccountPlants();
+  
+      for (const plant of plants) {
+        console.log(`Checking conditions for ${plant.name}...`);    
+        if (plant.moistureLevel !== null && plant.moistureLevel < plant.minimumMoisture) {
+            console.log(`${plant.name} needs water! Sending MQTT command.`);
+            // Publish MQTT command to water the plant
+            this.mqttService.publish(`cs326/plantMonitor/${plant.name}/in`, `pump_on_${plant.waterVolume}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error monitoring plant conditions:', error);
     }
   }
 
