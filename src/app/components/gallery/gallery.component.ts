@@ -13,7 +13,7 @@ export class GalleryComponent {
   houseplantService = inject(houseplantService);
   router = inject(Router);
 
-  async onPress(): Promise<void> {
+  onPress(): void {
     this.router.navigate(['/detail']);  // Navigate to the profile page
   }
 
