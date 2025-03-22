@@ -11,8 +11,11 @@ import { houseplantService } from '../../services/houseplant-service.service';
   styleUrl: './detail.component.css'
 })
 export class DetailComponent {
-
+  router = inject(Router);
   onSubmit(): void{
     // Handle form submission logic here
+  }
+  back(): void{
+    this.router.navigate(['/gallery']);
   }
 }

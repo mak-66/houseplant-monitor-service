@@ -3,16 +3,13 @@ body {
     margin: 0;
     padding: 0;
     height: 100vh;
-    background-image: url('https://i.pinimg.com/736x/94/1a/54/941a5455dbebc799587aaa102f4fbb42.jpg');
-    background-size: auto; 
+    background-image: url('https://plantura.garden/uk/wp-content/uploads/sites/2/2022/10/houseplant-red-leaves-window.jpg');
+    background-size: auto;
     background-position: center;
     display: flex;
     justify-content: center;
     align-items: center;
-    position:fixed;
-	left:0;
-	top:0;
-	right:0;
+    position:relative;
 }
 
 /* Outer white box with shading*/
@@ -23,8 +20,8 @@ body {
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2); 
     position: relative;
     display: flex; 
-    width: 700px; 
-    
+    width: 600px; 
+    margin-left: 370px;
 }
 
 /* Note: not actually centered */
@@ -112,7 +109,7 @@ form {
 }
 
 .water-button:hover {
-    background-color: #2228be;
+    background-color: #393daf;
 }
 
 .light-button {
@@ -130,4 +127,21 @@ form {
 
 .light-button:hover {
     background-color: #dbd041;
+}
+
+.back {
+    margin-bottom: 42%;
+    margin-left: 300px;
+}
+
+.back-button {
+    width: 100%;
+    padding: 10px;
+    background-color: #0f3118;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
 }

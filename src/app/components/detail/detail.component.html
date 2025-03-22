@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="detail.component.css"> <!-- Link to the external CSS file -->
 </head>
 <body>
-
     <div class="outer-box">
         <div class="inner-box">
             <h2>Controls</h2>
@@ -16,8 +15,8 @@
                 <p>Set Light Hrs</p>
             </div>
             <form (ngSubmit)="onSubmit()">
-                <input type="text" class="input-field" placeholder="1" >
-                <input type="text" class="input-field" placeholder="5">
+                <input type="text" class="input-field" placeholder="0 oz" >
+                <input type="text" class="input-field" placeholder="0 hours">
             </form>
             <form (ngSubmit)="onSubmit()">
                 <button type="submit" class="login-button">Submit</button>
@@ -27,14 +26,11 @@
                 <button type="submit" class="water-button">Water</button>
                 <button type="submit" class="light-button">Light</button>
             </form>
-                
-            
-            
-            
-    
         </div>
         <div class="image-container"></div> <!-- The image will be added via CSS now -->
     </div>
-
+    <div class="back">
+        <button (click)="back()" class="back-button">Back to Gallery</button>
+    </div>
 </body>
 </html>
