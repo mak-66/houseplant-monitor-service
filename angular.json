@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "Houseplant-Monitor-Backend": {
+    "houseplant-monitor-backend": {
       "projectType": "application",
       "schematics": {},
       "root": "",
