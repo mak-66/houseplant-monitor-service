@@ -34,9 +34,8 @@ export class houseplantService {
   public accounts$: Observable<Account[]>;
   
   constructor() {
-    // Initialize the Firestore collection references
-    this.accountCollection = collection(this.firestore, 'Accounts');
     // Fetch all accounts from Firestore
+    this.accountCollection = collection(this.firestore, 'Accounts');
     const accountConverter = {
       toFirestore: (account: Account) => account,
       fromFirestore: (snapshot: any) => {
@@ -49,8 +48,9 @@ export class houseplantService {
     };
     const accountsQuery = query(this.accountCollection.withConverter(accountConverter));
     this.accounts$ = collectionData<Account>(accountsQuery); // Observable of all accounts
-    this.plantCollection = collection(this.firestore, 'Plants');
+    
     //fetches only the plants owned by the current account
+    this.plantCollection = collection(this.firestore, 'Plants');
     const plantConverter = {
       toFirestore: (plant: Plant) => plant,
       fromFirestore: (snapshot: any) => {
@@ -65,11 +65,8 @@ export class houseplantService {
         } as Plant;
       },
     };
-
     var q = query(
-      this.plantCollection.withConverter(plantConverter),
-      where('id', 'in', this.currentAccount?.ownedPlants || []), // Use an empty array if currentAccount is null
-    );
+      this.plantCollection.withConverter(plantConverter));
     this.plants$ = collectionData<Plant>(q);    
 
     // Listen for auth state changes and set the user property
