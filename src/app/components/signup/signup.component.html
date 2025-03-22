@@ -3,23 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Page</title>
-    <link rel="stylesheet" href="login.component.css"> <!-- Link to the external CSS file -->
+    <title>Signup Page</title>
+    <link rel="stylesheet" href="signup.component.css"> <!-- Link to the external CSS file -->
 </head>
 <body>
 
     <div class="outer-box">
         <div class="inner-box">
-            <h2>Login</h2>
-            <form (ngSubmit)="onLogin()">
-                <input type="text" name="email" class="input-field" placeholder="Email" [(ngModel)]="email" required>
+            <h2>signup</h2>
+            <form (ngSubmit)="onSignUp()">
+                <input type="text" name="email" class="input-field" placeholder="Username" [(ngModel)]="email" required>
                 <input type="password" name="password" class="input-field" placeholder="Password" [(ngModel)]="password" required>
-                <button type="submit" class="login-button">Login</button>
+                <button type="submit" class="signup-button">signup</button>
             </form>
-            <!-- Sign up Link -->
             <div class="signup-link">
-                <span>Don't have an account yet? </span>
-                <a routerLink="/signup">Sign up</a>
+                <p>Don't have an account? <a href="signup">Sign up</a></p>
             </div>
         </div>
         <div class="image-container"></div> <!-- The image will be added via CSS now -->

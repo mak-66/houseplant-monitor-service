@@ -11,11 +11,11 @@ import { FormsModule } from '@angular/forms'; // Import FormsModule
 })
 export class LoginComponent {
   router = inject(Router);
-  username: string = ''; // Variable for username
+  email: string = ''; // Variable for username
   password: string = ''; // Variable for password
 
   async onLogin(): Promise<void> {
-    
+
     this.router.navigate(['/gallery']);  // Navigate to the profile page
   }
 }

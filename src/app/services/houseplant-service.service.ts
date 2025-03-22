@@ -8,7 +8,6 @@ import { Router } from '@angular/router';
 export interface Account {
   ownedPlants: string[];
   email: string;
-  // password: string;
 }
 
 export interface Plant {
