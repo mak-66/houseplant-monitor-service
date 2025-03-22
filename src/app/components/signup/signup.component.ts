@@ -38,4 +38,7 @@ export class SignupComponent {
       console.error('Error during signup:', error);
     }
   }
+  login(): void{
+    this.router.navigate(['/login']);
+  }
 }

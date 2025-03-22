@@ -30,7 +30,7 @@ body {
 /* Note: not actually centered */
 .image-container {
     flex: 1;
-    height: 320px;
+    height: 280px;
     width: 110px;
     margin-right: 20px;
     margin-left: 10px;
@@ -95,4 +95,16 @@ h2 {
 
 .forgot-password a:hover {
     text-decoration: underline;
+}
+
+.signup-link {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+    color: #2e6930;
+}
+
+.signup-link:hover {
+    text-decoration: underline;
+    color: #4e9851;
 }
