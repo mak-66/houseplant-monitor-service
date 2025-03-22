@@ -3,8 +3,8 @@ body {
     margin: 0;
     padding: 0;
     height: 100vh;
-    background-image: url('https://images.unsplash.com/photo-1597452053186-c31bc0bd70b2?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YWJzdHJhY3QlMjBwbGFudHxlbnwwfHwwfHx8MA%3D%3D');
-    background-size: cover; 
+    background-image: url('https://i.pinimg.com/736x/94/1a/54/941a5455dbebc799587aaa102f4fbb42.jpg');
+    background-size: auto; 
     background-position: center;
     display: flex;
     justify-content: center;
