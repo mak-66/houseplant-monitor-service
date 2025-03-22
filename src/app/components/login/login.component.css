@@ -1,0 +1,98 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    background-image: url('https://images.unsplash.com/photo-1597452053186-c31bc0bd70b2?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YWJzdHJhY3QlMjBwbGFudHxlbnwwfHwwfHx8MA%3D%3D');
+    background-size: cover; 
+    background-position: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position:fixed;
+	left:0;
+	top:0;
+	right:0;
+}
+
+/* Outer white box with shading*/
+.outer-box {
+    background-color: white;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2); 
+    position: relative;
+    display: flex; 
+    width: 700px; 
+    
+}
+
+/* Note: not actually centered */
+.image-container {
+    flex: 1;
+    height: 320px;
+    width: 110px;
+    margin-right: 20px;
+    margin-left: 10px;
+    border-radius: 200px;
+    background: url("https://png.pngtree.com/element_our/png/20181229/sprout-plant-graphic-icon-design-template-png_301529.jpg");
+    background-size: cover; 
+    background-position: center;
+}
+
+
+.inner-box {
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); /* Inner pop-out effect */
+    width: 50%; /* Half of the outer box width */
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.input-field {
+    width: 94%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.input-field:focus {
+    border-color: #007bff;
+    outline: none;
+}
+
+.login-button {
+    width: 100%;
+    padding: 10px;
+    background-color: #099C30;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    
+}
+
+.login-button:hover {
+    background-color: #278729;
+}
+
+.forgot-password {
+    text-align: center;
+    margin-top: 10px;
+}
+
+.forgot-password a {
+    color: #2e6930;
+    text-decoration: none;
+}
+
+.forgot-password a:hover {
+    text-decoration: underline;
+}

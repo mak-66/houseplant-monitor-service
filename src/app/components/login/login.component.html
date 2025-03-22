@@ -1,1 +1,27 @@
-<p>login works!</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <link rel="stylesheet" href="login.component.css"> <!-- Link to the external CSS file -->
+</head>
+<body>
+
+    <div class="outer-box">
+        <div class="inner-box">
+            <h2>Login</h2>
+            <form action="/submit-login" method="POST">
+                <input type="text" name="username" class="input-field" placeholder="Username" required>
+                <input type="password" name="password" class="input-field" placeholder="Password" required>
+                <button type="submit" class="login-button" (click)="onLogin()">Login</button>
+            </form>
+            <div class="forgot-password">
+                <a href="#">Forgot your password?</a>
+            </div>
+        </div>
+        <div class="image-container"></div> <!-- The image will be added via CSS now -->
+    </div>
+
+</body>
+</html>

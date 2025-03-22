@@ -1,1 +1,43 @@
-<p>gallery works!</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Gallery</title>
+  <link rel="stylesheet" href="gallery.component.css">
+</head>
+<body>
+
+  <div class="container">
+    <h1>Plant Gallery</h1>
+    
+    <div class="gallery">
+      <div class="image-item" (click)="onPress()">
+        <img src="https://chinburg.com/wp-content/uploads/2020/08/Chinburg-18-Easy-Care-Houseplants-for-Your-Home_monstera.jpg" alt="Image 1">
+        <p class="description">Today's Water: 30 mL<br>Today's Light: 2 hours</p>
+      </div>
+      <div class="image-item" (click)="onPress()">
+        <img src="https://gardenerspath.com/wp-content/uploads/2017/10/Guide-to-Houseplants-Grow-Dumb-Cane.jpg" alt="Image 2">
+        <p class="description">Description of Image 2</p>
+      </div>
+      <div class="image-item" (click)="onPress()">
+        <img src="https://media.istockphoto.com/id/1330960679/photo/tree-pot-in-white-background-minimal-concept-idea-creative-3d-render.jpg?s=612x612&w=0&k=20&c=G1gV50TwbxQiPhGIrBWaPS_-8_u80NLqEEQm1eNvzlw=" alt="Image 3">
+        <p class="description">Description of Image 3</p>
+      </div>
+      <div class="image-item" (click)="onPress()">
+        <img src="https://gardenerspath.com/wp-content/uploads/2017/10/Durable-Houseplant-Growing-Guide.jpg" alt="Image 4">
+        <p class="description">Description of Image 4</p>
+      </div>
+      <div class="image-item" (click)="onPress()">
+        <img src="https://cdn.shopify.com/s/files/1/0280/3725/1144/files/croton-colorful-houseplants-costa-farms.jpg" alt="Image 5">
+        <p class="description">Description of Image 5</p>
+      </div>
+      <div class="image-item" (click)="onPress()">
+        <img src="https://www.gardendesign.com/pictures/images/675x529Max/site_3/birkin-philodendron-philodendron-hybrid-proven-winners_17358.jpg" alt="Image 6">
+        <p class="description">Description of Image 6</p>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
