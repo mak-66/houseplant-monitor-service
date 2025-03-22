@@ -11,7 +11,7 @@ import { Router } from '@angular/router';
 export class GalleryComponent {
   router = inject(Router);
 
-  async onLogin(): Promise<void> {
+  async onPress(): Promise<void> {
     this.router.navigate(['/detail']);  // Navigate to the profile page
   }
 }
