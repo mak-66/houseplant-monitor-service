@@ -15,11 +15,11 @@ export class MqttService {
   }
 
   private connectToBroker() {
-    const brokerUrl = 'wss://iot.cs.calvin.edu:1883'; // Use WebSockets for browser compatibility   A: set broker url to iot.cs.calvin.edu
-    const options = {
-      clientId: 'angular-client-' + Math.random().toString(16).substr(2, 8),
+    const brokerUrl = 'wss://iot.cs.calvin.edu:8083/mqtt'; // WebSocket URL for MQTT broker
+    const options: mqtt.IClientOptions  = {
       username: 'cs326', // if authentication is required
-      password: 'piot'  //A: set user and password
+      password: 'piot',  //A: set user and password
+      protocol: 'mqtts' //A: set protocol to mqtts
     };
 
     this.client = mqtt.connect(brokerUrl, options);

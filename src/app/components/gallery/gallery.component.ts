@@ -14,7 +14,7 @@ export class GalleryComponent {
   router = inject(Router);
 
   onPress(): void {
-    this.router.navigate(['/detail']);  // Navigate to the profile page
+    this.router.navigate(['/detail/4IJEle424gxnoDUELdFW']);  // Navigate to the profile page
   }
 
   async signOut(): Promise<void>{

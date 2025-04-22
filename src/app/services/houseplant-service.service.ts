@@ -45,15 +45,17 @@ export class houseplantService {
       fromFirestore: (snapshot: any) => {
         const data = snapshot.data();
         return {
-          ownedPlants: data.ownedPlants || [], // default to empty array if undefined
+          ownedPlants: data.ownedPlants || [],
           email: data.email,
         } as Account;
       },
     };
-    const accountsQuery = query(this.accountCollection.withConverter(accountConverter));
-    this.accounts$ = collectionData<Account>(accountsQuery); // Observable of all accounts
-    
-    //fetches all the plants from Firestore
+
+    // Create a proper query
+    const accountsQuery = query(collection(this.firestore, 'Accounts').withConverter(accountConverter));
+    this.accounts$ = collectionData<Account>(accountsQuery);
+
+    // Fetch all plants from Firestore
     this.plantCollection = collection(this.firestore, 'Plants');
     const plantConverter = {
       toFirestore: (plant: Plant) => plant,
@@ -69,17 +71,29 @@ export class houseplantService {
         } as Plant;
       },
     };
-    var q = query(
-      this.plantCollection.withConverter(plantConverter));
-    this.plants$ = collectionData<Plant>(q);    
 
-    // Combine the accounts and plants observables to get the current account's plants
-    this.fetchAccountPlants().then(plants => { this.ownedPlantsData = plants; });   
+    // Create a proper query for plants
+    const plantsQuery = query(collection(this.firestore, 'Plants').withConverter(plantConverter));
+    this.plants$ = collectionData<Plant>(plantsQuery);
+ 
 
     // Listen for auth state changes and set the user property
     onAuthStateChanged(this.auth, (currentUser) => {
       this.user = currentUser;
       console.log('Auth state changed, user is now:', this.user);
+      if (this.user && this.user.email) {
+        // Fetch the current account based on the logged-in user
+        this.fetchAccount(this.user.email).then((account) => {
+          this.currentAccount = account;  
+          // Fetch plants for the current account
+          this.fetchAccountPlants().then((plants) => {
+            this.ownedPlantsData = plants;
+            console.log('Owned plants data:', this.ownedPlantsData);
+          });
+        });
+      } else {
+        this.currentAccount = null;
+      }
     });
 
     // subscribe to the plant topics for the current account's plants
@@ -93,7 +107,7 @@ export class houseplantService {
     });
 
     // Monitor + Publish instructions to maintain plant conditions every n milliseconds
-    setInterval(() => this.monitorPlantConditions(), 30000);
+    setInterval(() => this.monitorPlantConditions(), 3000);
   }  
   
   async addPlant(newPlant: Partial<Plant>): Promise<string> {
@@ -213,27 +227,20 @@ export class houseplantService {
         throw new Error('No current account is logged in');
       }
       
-      console.log(this.currentAccount)
       const ownedPlantIds = this.currentAccount.ownedPlants;
       
       if (ownedPlantIds.length === 0) {
         return [];
       }
       
-      // Fetch all plants from Firestore that match the ownedPlantIds
-      const plantsQuery = query(
-        this.plantCollection,
-        where('id', 'in', ownedPlantIds) // Filter plants by the ownedPlantIds
-      );      
-      const querySnapshot = await getDocs(plantsQuery);
-      
-      if (querySnapshot.empty) {
-        return [];
+      // Modified query to use individual document references
+      const plants: Plant[] = [];
+      for (const plantId of ownedPlantIds) {
+        const plantDoc = await getDoc(doc(this.firestore, 'Plants', plantId));
+        if (plantDoc.exists()) {
+          plants.push({ id: plantDoc.id, ...plantDoc.data() } as Plant);
+        }
       }
-
-      // Map the document snapshots to Plant objects
-      const plants: Plant[] = querySnapshot.docs.map(doc => doc.data() as Plant);
-
       return plants;
     } catch (error) {
       console.error('Error fetching account plants:', error);
@@ -245,11 +252,12 @@ export class houseplantService {
     // subscribes to the MQTT topic for all plants owned by the current account
     for (let i = 0; i < this.ownedPlantsData.length; i++) {
       const plant = this.ownedPlantsData[i];
-      this.mqttService.subscribe('cs326/plantMonitor/${plant.name}/out');
+      this.mqttService.subscribe(`cs326/plantMonitor/${plant.name}/out`);
     }
   }
 
   private handleMqttMessage(message: string) {
+    // responsible for handling incomming MQTT messages from broker
     try {
       if (message.startsWith('')) {
         
@@ -271,12 +279,13 @@ export class houseplantService {
       // Fetch latest plant data
       const plants = await this.fetchAccountPlants();
   
+      console.log('Plants to monitor:', plants);
       for (const plant of plants) {
-        console.log(`Checking conditions for ${plant.name}...`);    
         if (plant.moistureLevel !== null && plant.moistureLevel < plant.minimumMoisture) {
             console.log(`${plant.name} needs water! Sending MQTT command.`);
             // Publish MQTT command to water the plant
-            this.mqttService.publish(`cs326/plantMonitor/${plant.name}/in`, `pump_on_${plant.waterVolume}`);
+            this.waterPlant(plant.id);
+            
         }
       }
     } catch (error) {
@@ -284,8 +293,40 @@ export class houseplantService {
     }
   }
 
+  public async waterPlant(id: string): Promise<void> {
+    // finds the plant's water volume from the plants array
+    const plant = this.ownedPlantsData.find(p => p.id === id);
+
+    if (!plant) {
+      console.error(`Plant with ID ${id} not found`);
+      return;
+    }
+
+    // Publish the command to the MQTT broker to water the plant
+    this.mqttService.publish(`cs326/plantMonitor/${plant.name}/in`, `pump_on_${plant.waterVolume}`);
+    console.log(`Published command to water ${plant.name} with volume ${plant.waterVolume}`);
+  }
+
+  public async fetchPlantByID(id: string): Promise<Plant | null> {
+    try {
+      const plantDocRef = doc(this.firestore, 'Plants', id);
+      const plantDoc = await getDoc(plantDocRef);
+      if (plantDoc.exists()) {
+        return { id: plantDoc.id, ...plantDoc.data() } as Plant;
+      } else {
+        console.error(`No plant found with ID ${id}`);
+        return null;
+      }
+    }
+    catch (error) {
+      console.error('Error fetching plant:', error);
+      return null;
+    }
+  }
+
   //Creates the user for authentication, then calls createAccount to update the database
   async createUser(email: string, password: string, newAccount: Account): Promise<void> {
+    console.log('Creating user with email:', email);
     createUserWithEmailAndPassword(this.auth, email, password)
       .then((userCredential) => {
         // Signed up 
@@ -312,19 +353,21 @@ export class houseplantService {
   }  
 
   async fetchAccount(email: string): Promise<Account> {
-    try {
-      // Get the latest value of the accounts observable
-      const accounts = await firstValueFrom(this.accounts$);  
-      // Find the account with the matching email
-      const account = accounts.find((account) => account.email === email);  
-      if (!account) {
-        throw new Error(`Account with email ${email} not found`);      }
-  
-      return account;
-    } catch (error) {
-      console.error('Error fetching account:', error);
-      throw error;
+    // Create a proper query to find account by email
+    const accountsQuery = query(
+      collection(this.firestore, 'Accounts'),
+      where('email', '==', email)
+    );
+
+    const querySnapshot = await getDocs(accountsQuery);
+
+    if (querySnapshot.empty) {
+      throw new Error(`Account with email ${email} not found`);
     }
+
+    // Get the first (and should be only) matching document
+    const accountData = querySnapshot.docs[0].data() as Account;
+    return accountData;
   }  
 
   async login (email: string, password: string): Promise<boolean> {
@@ -335,24 +378,30 @@ export class houseplantService {
       this.currentAccount = await this.fetchAccount(email)
       return true;  // Return true on successful login
     } catch (error) {
-      if (error instanceof Error && 'code' in error) {
-        const firebaseError = error as { code: string, message: string }; 
-        const errorCode = firebaseError.code;
-        const errorMessage = firebaseError.message;
-        console.log('Firebase Error Code:', errorCode, 'Message:', errorMessage);
-      } else {
-        // Handle case where the error isn't an instance of Error
-        console.log('An unknown error occurred', error);
-      }
+      // Handle case where the error isn't an instance of Error
+      console.log(error);
       return false;
     }
   }
 
   async logout(): Promise<void>{
-    signOut(this.auth).then(() => {
-      console.log('User logged out');
-      this.currentAccount = null;
-      this.router.navigate( ['/']);
-    })
+    // Sign out from Firebase Auth
+    await signOut(this.auth);
+    console.log('User logged out from Firebase');
+
+    // Clear user data
+    this.user = null;
+    this.currentAccount = null;
+    this.ownedPlantsData = [];
+
+    // Clear MQTT subscriptions for each plant
+    if (this.ownedPlantsData) {
+      for (const plant of this.ownedPlantsData) {
+        this.mqttService.unsubscribe(`cs326/plantMonitor/${plant.name}/out`);
+      }
+    }
+    
+    // Navigate to home page
+    await this.router.navigate(['/']);
   }
 }

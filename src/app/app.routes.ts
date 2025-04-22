@@ -8,8 +8,8 @@ import { DetailComponent } from './components/detail/detail.component';
 export const routes: Routes = [
     { path: '', component: LoginComponent },
     { path: 'signup', component: SignupComponent },
-    { path: 'gallery', component: GalleryComponent},
-    { path: 'detail', component: DetailComponent},
+    { path: 'gallery', component: GalleryComponent, canActivate: [AuthGuard] },
+    { path: 'detail/:plantID', component: DetailComponent, canActivate: [AuthGuard] },
 
     { path: '**', redirectTo: '' }
     

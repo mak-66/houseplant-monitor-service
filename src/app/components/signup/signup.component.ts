@@ -31,7 +31,6 @@ export class SignupComponent {
       // Call the createAccount method from houseplantService
       await this.houseplantService.createUser(this.email, this.password, newAccount);
 
-      console.log('Account successfully created!');
       // Redirect to login page or profile page
       this.router.navigate(['/']);
     } catch (error) {
