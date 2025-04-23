@@ -9,28 +9,51 @@
 <body>
     <div class="outer-box">
         <div class="inner-box">
-            <h2>Controls</h2>
             <div class="headings">
                 <p>Set Water Oz</p>
-                <p>Set Light Hrs</p>
+                <p>Set Moisture Level</p>
             </div>
-            <form (ngSubmit)="onSubmit()">
-                <input type="text" class="input-field" placeholder="0 oz" >
-                <input type="text" class="input-field" placeholder="0 hours">
+            <form (ngSubmit)="updateSettings()">
+                <input 
+                    type="number" 
+                    class="input-field" 
+                    [(ngModel)]="waterVolume" 
+                    name="waterVolume"
+                    placeholder="Water Volume (mL)" 
+                    min="0">
+                <input 
+                    type="number" 
+                    class="input-field" 
+                    [(ngModel)]="moistureLevel" 
+                    name="moistureLevel"
+                    placeholder="Moisture Level (%)" 
+                    min="0"
+                    max="24">
+                <button type="submit" class="login-button">Update Settings</button>
             </form>
-            <form (ngSubmit)="onSubmit()">
-                <button type="submit" class="login-button">Submit</button>
-                <button type="submit" class="login-button">Submit</button>
-            </form>
-            <form>
-                <button (click)="waterPlant()" class="water-button">Water</button>
-                <button (click)="lightPlantToggle()" class="light-button">Light</button>
-            </form>
+            <div class="control-buttons">
+                <button (click)="waterPlant()" class="water-button">Water Now</button>
+                <button (click)="toggleLight()" class="light-button">
+                    {{isLightOn ? 'Turn Light Off' : 'Turn Light On'}}
+                </button>
+            </div>
+            <div class="charts-section">
+                <div class="chart-container">
+                    <h3>Moisture History</h3>
+                    <canvas #moistureChart id="moistureChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Daily Sunlight Hours</h3>
+                    <canvas #sunlightChart id="sunlightChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Temperature History</h3>
+                    <canvas #temperatureChart id="temperatureChart"></canvas>
+                </div>
+            </div>
         </div>
+
         <div class="image-container"></div> <!-- The image will be added via CSS now -->
-    </div>
-    <div class="back">
-        <button (click)="back()" class="back-button">Back to Gallery</button>
     </div>
 </body>
 </html>

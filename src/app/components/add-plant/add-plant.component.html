@@ -1,0 +1,52 @@
+<div class="outer-box">
+    <div class="inner-box">
+        <h2>Add New Plant</h2>
+        <form (ngSubmit)="onSubmit()" #plantForm="ngForm">
+            <div class="form-group">
+                <label for="plantName">Plant Name</label>
+                <input 
+                    type="text" 
+                    id="plantName"
+                    name="plantName"
+                    class="input-field"
+                    [(ngModel)]="newPlant.name" 
+                    required>
+            </div>
+
+            <div class="form-group">
+                <label for="minimumMoisture">Minimum Moisture Level (%)</label>
+                <input 
+                    type="number" 
+                    id="minimumMoisture"
+                    name="minimumMoisture"
+                    class="input-field"
+                    [(ngModel)]="newPlant.minimumMoisture"
+                    min="0"
+                    max="100"
+                    required>
+            </div>
+
+            <div class="form-group">
+                <label for="waterVolume">Water Volume (mL)</label>
+                <input 
+                    type="number" 
+                    id="waterVolume"
+                    name="waterVolume"
+                    class="input-field"
+                    [(ngModel)]="newPlant.waterVolume"
+                    min="0"
+                    required>
+            </div>
+
+            <button 
+                type="submit" 
+                class="submit-button"
+                [disabled]="!plantForm.form.valid">
+                Add Plant
+            </button>
+        </form>
+    </div>
+    <div class="back">
+        <button (click)="back()" class="back-button">Back to Gallery</button>
+    </div>
+</div>

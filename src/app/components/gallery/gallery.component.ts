@@ -14,7 +14,12 @@ export class GalleryComponent {
   router = inject(Router);
 
   onPress(): void {
-    this.router.navigate(['/detail/4IJEle424gxnoDUELdFW']);  // Navigate to the profile page
+    // sends to the first plant owned by the user
+    this.router.navigate([`/detail/${this.houseplantService.ownedPlantsData[0].id}`]);  // Navigate to the profile page
+  }
+
+  addPlant(): void {
+    this.router.navigate(['/add-plant']);  // Navigate to the new plant page
   }
 
   async signOut(): Promise<void>{

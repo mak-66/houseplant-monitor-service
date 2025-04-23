@@ -3,7 +3,7 @@ import { Timestamp, query, orderBy, where, addDoc, deleteDoc, getDoc, getDocs, s
 import { User, Auth, getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "@angular/fire/auth";
 import { Observable, firstValueFrom,map,BehaviorSubject, combineLatest } from 'rxjs';
 import { Router } from '@angular/router';
-import { MqttService } from './mqtt.service';
+import { MqttMessage, MqttService } from './mqtt.service';
 
 
 export interface Account {
@@ -14,11 +14,12 @@ export interface Account {
 export interface Plant {
   id: string;
   name: string;
-  minimumMoisture: number;
-  waterVolume: number;
+  minimumMoisture: number; // determines when the plant needs watering
+  waterVolume: number; // amount of water to be dispensed in mL
   waterLog: Timestamp[];
-  moistureLevel: number;
-  lightLog: number[];
+  moistureLog: {Timestamp: Timestamp, number: number} []; // tracks the moisture levels over time
+  temperatureLog: {Timestamp: Timestamp, number: number}[]; // tracks the temperature levels over time
+  lightLog: Timestamp[]; // tracks when the light levels were above a certain threshold (0)
 }
 
 @Injectable({
@@ -35,7 +36,7 @@ export class houseplantService {
   public ownedPlantsData: Plant[] = [];
   accountCollection: CollectionReference;
   public accounts$: Observable<Account[]>;
-  private mqttService: MqttService = inject(MqttService); // Inject the MqttService
+  public mqttService: MqttService = inject(MqttService); // Inject the MqttService
   
   constructor() {
     // Fetch all accounts from Firestore
@@ -83,31 +84,30 @@ export class houseplantService {
       console.log('Auth state changed, user is now:', this.user);
       if (this.user && this.user.email) {
         // Fetch the current account based on the logged-in user
-        this.fetchAccount(this.user.email).then((account) => {
-          this.currentAccount = account;  
+        this.fetchAccount(this.user.email).then(async (account) => { // user logged in
+          this.currentAccount = account;            
           // Fetch plants for the current account
-          this.fetchAccountPlants().then((plants) => {
-            this.ownedPlantsData = plants;
-            console.log('Owned plants data:', this.ownedPlantsData);
+          const plants = await this.fetchAccountPlants();
+          this.ownedPlantsData = plants;
+          console.log('Owned plants data:', this.ownedPlantsData);
+
+          // Only subscribe to MQTT topics after we have the plant data
+          this.subscribeToPlantData();
+
+          // Listen for incoming messages
+          this.mqttService.messages$.subscribe((message) => {
+            if (!message) return; // Ignore null messages
+            // console.log(message.topic, ' received MQTT message:', message.payload);
+            this.handleMqttMessage(message);
           });
+
+          // Monitor + Publish instructions to maintain plant conditions
+          setInterval(() => this.monitorPlantConditions(), 3000);
         });
       } else {
         this.currentAccount = null;
       }
     });
-
-    // subscribe to the plant topics for the current account's plants
-    this.subscribeToPlantData();
-
-    // Listen for incoming messages
-    this.mqttService.messages$.subscribe((message) => {
-      if (!message) return; // Ignore null messages
-      console.log('Received MQTT message:', message);
-      this.handleMqttMessage(message);
-    });
-
-    // Monitor + Publish instructions to maintain plant conditions every n milliseconds
-    setInterval(() => this.monitorPlantConditions(), 3000);
   }  
   
   async addPlant(newPlant: Partial<Plant>): Promise<string> {
@@ -174,7 +174,14 @@ export class houseplantService {
   
       // Update the plant document with the provided updates
       await updateDoc(plantDocRef, updates);
-      console.log(`Plant with ID ${plantId} updated successfully.`);
+
+      // Update the local `ownedPlantsData` to reflect the changes
+      const plantIndex = this.ownedPlantsData.findIndex(plant => plant.id === plantId);
+      if (plantIndex !== -1) {
+        this.ownedPlantsData[plantIndex] = { ...this.ownedPlantsData[plantIndex], ...updates };
+      } else {
+        console.error(`Plant with ID ${plantId} not found in local data`);
+      }
     } catch (error) {
       console.error('Error updating plant:', error);
       throw error;
@@ -250,19 +257,58 @@ export class houseplantService {
 
   subscribeToPlantData(): void {
     // subscribes to the MQTT topic for all plants owned by the current account
+    console.log('Subscribing to MQTT topics for owned plants...');
     for (let i = 0; i < this.ownedPlantsData.length; i++) {
       const plant = this.ownedPlantsData[i];
-      this.mqttService.subscribe(`cs326/plantMonitor/${plant.name}/out`);
+      console.log(`Subscribing to MQTT topic for plant: ${plant.name} (cs326/plantMonitor/${plant.name}/out)`);
+      // subscribes to the plants associated topics
+      this.mqttService.subscribe(`cs326/plantMonitor/${plant.name}/out/moisture`);
+      this.mqttService.subscribe(`cs326/plantMonitor/${plant.name}/out/light`);
+      this.mqttService.subscribe(`cs326/plantMonitor/${plant.name}/out/temperature`);
+      this.mqttService.subscribe(`cs326/plantMonitor/${plant.name}/out/time`);
     }
   }
 
-  private handleMqttMessage(message: string) {
+  private handleMqttMessage(message: MqttMessage) {
     // responsible for handling incomming MQTT messages from broker
     try {
-      if (message.startsWith('')) {
-        
-      } else {
-        console.log('Received unrecognized MQTT message:', message);
+      // parses message topic into array, ex <class>/<project>/<plant name>/out/<data type>      
+      const topicParts = message.topic.split('/');
+      const plantName = topicParts[2]; // Extract the plant name from the topic
+      const dataType = topicParts[4]; // Extract the data type from the topic
+
+      // Find the plant in the ownedPlantsData array
+      const plant = this.ownedPlantsData.find(p => p.name === plantName);
+      if (!plant) {
+        console.error(`Plant with name ${plantName} not found in owned plants`);
+        return;
+      }
+
+      console.log(`Received ${dataType} data for ${plantName}:`, message.payload);
+
+      // updates the plants data both locally and in the database
+      const time = new Timestamp(Date.now()/1000, 0);
+      switch (dataType) {
+        case 'moisture':
+          // new moisture data is added to the moistureLog array
+          const moisture: number = parseFloat(message.payload);
+          plant.moistureLog.push({Timestamp: time, number: moisture});
+          this.updatePlant(plant.id, { moistureLog: plant.moistureLog,  });
+          break;
+        case 'light':
+          const lightLevel = (parseInt(message.payload));
+          if (lightLevel > 0) { // If light level is above 0, add a timestamp to the lightLog    
+            plant.lightLog.push(new Timestamp(Date.now()/1000, 0));
+            this.updatePlant(plant.id, { lightLog: plant.lightLog });
+          }
+          break;
+        case 'temperature':
+          const temperature: number = parseFloat(message.payload);
+          plant.temperatureLog.push({Timestamp: time, number: temperature});
+          this.updatePlant(plant.id, { temperatureLog: plant.temperatureLog });
+          break;
+        default:
+          console.error(`Unknown data type: ${dataType}`);
       }
     } catch (error) {
       console.error('Error parsing MQTT message:', error);
@@ -281,13 +327,24 @@ export class houseplantService {
   
       console.log('Plants to monitor:', plants);
       for (const plant of plants) {
-        if (plant.moistureLevel !== null && plant.moistureLevel < plant.minimumMoisture) {
-            console.log(`${plant.name} needs water! Sending MQTT command.`);
-            // Publish MQTT command to water the plant
-            this.waterPlant(plant.id);
+        // Check if the plant has moisture readings
+        if (plant.moistureLog && plant.moistureLog.length > 0) {
+            // Get the latest moisture reading
+            const latestMoisture = plant.moistureLog[plant.moistureLog.length - 1];
             
+            // Check if moisture is below threshold
+            const lastWateringTime = plant.waterLog[plant.waterLog.length-1]; // gets the last watering time
+            const currentTime = new Timestamp(Date.now()/1000, 0); // gets the current time
+            const timeDifference = currentTime.seconds - lastWateringTime.seconds; // calculates the time difference in seconds
+            if (latestMoisture.number < plant.minimumMoisture && timeDifference > 600) {
+                console.log(`${plant.name} needs water! Current moisture: ${latestMoisture.number}%, Minimum: ${plant.minimumMoisture}%`);
+                // Publish MQTT command to water the plant
+                await this.waterPlant(plant.id);
+            }
+        } else {
+            console.log(`No moisture data available for plant: ${plant.name}`);
         }
-      }
+    }
     } catch (error) {
       console.error('Error monitoring plant conditions:', error);
     }
@@ -305,6 +362,12 @@ export class houseplantService {
     // Publish the command to the MQTT broker to water the plant
     this.mqttService.publish(`cs326/plantMonitor/${plant.name}/in`, `pump_on_${plant.waterVolume}`);
     console.log(`Published command to water ${plant.name} with volume ${plant.waterVolume}`);
+
+    // Add the current timestamp to the waterLog array
+    const time = new Timestamp(Date.now()/1000, 0);
+    plant.waterLog.push(time);
+    // Update the plant's waterLog in Firestore
+    await this.updatePlant(plant.id, { waterLog: plant.waterLog });
   }
 
   public async fetchPlantByID(id: string): Promise<Plant | null> {
@@ -312,7 +375,17 @@ export class houseplantService {
       const plantDocRef = doc(this.firestore, 'Plants', id);
       const plantDoc = await getDoc(plantDocRef);
       if (plantDoc.exists()) {
-        return { id: plantDoc.id, ...plantDoc.data() } as Plant;
+        const data = plantDoc.data();
+            return {
+                id: plantDoc.id,
+                name: data['name'] || '',
+                minimumMoisture: data['minimumMoisture'] || 0,
+                waterVolume: data['waterVolume'] || 0,
+                waterLog: data['waterLog'] || [],
+                moistureLog: data['moistureLog'] || [],
+                temperatureLog: data['temperatureLog'] || [],
+                lightLog: data['lightLog'] || []
+            } as Plant;        
       } else {
         console.error(`No plant found with ID ${id}`);
         return null;

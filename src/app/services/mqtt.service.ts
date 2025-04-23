@@ -2,12 +2,17 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import mqtt from 'mqtt';
 
+export interface MqttMessage {
+  topic: string;
+  payload: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class MqttService {
   private client!: mqtt.MqttClient;
-  private messageSubject = new BehaviorSubject<string | null>(null);
+  private messageSubject = new BehaviorSubject<MqttMessage | null>(null);
   public messages$ = this.messageSubject.asObservable();
 
   constructor() {
@@ -19,7 +24,7 @@ export class MqttService {
     const options: mqtt.IClientOptions  = {
       username: 'cs326', // if authentication is required
       password: 'piot',  //A: set user and password
-      protocol: 'mqtts' //A: set protocol to mqtts
+      protocol: 'mqtts', //A: set protocol to mqtts
     };
 
     this.client = mqtt.connect(brokerUrl, options);
@@ -29,8 +34,7 @@ export class MqttService {
     });
 
     this.client.on('message', (topic, message) => {
-      console.log(`Received message on topic ${topic}: ${message.toString()}`);
-      this.messageSubject.next(message.toString());
+      this.messageSubject.next({topic, payload: message.toString()});
     });
 
     this.client.on('error', (err) => {
@@ -50,7 +54,7 @@ export class MqttService {
 
   publish(topic: string, message: string) {
     if (this.client.connected) {
-      this.client.publish(topic, message);
+      this.client.publish(topic, message, {qos: 2}); // QoS level 2 for exactly once delivery
       console.log(`Published message "${message}" to topic "${topic}"`);
     }
   }
