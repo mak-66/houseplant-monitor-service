@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { houseplantService } from '../../services/houseplant-service.service';
+import { houseplantService, Plant } from '../../services/houseplant-service.service';
 
 @Component({
   selector: 'app-login',
@@ -12,10 +12,15 @@ import { houseplantService } from '../../services/houseplant-service.service';
 export class GalleryComponent {
   houseplantService = inject(houseplantService);
   router = inject(Router);
+  ownedPlants: Plant[] = [];
 
-  onPress(): void {
+  async ngOnInit(): Promise<void> {
+    this.ownedPlants = await this.houseplantService.fetchAccountPlants();
+  }
+
+  onPress(plantId: string): void {
     // sends to the first plant owned by the user
-    this.router.navigate([`/detail/${this.houseplantService.ownedPlantsData[0].id}`]);  // Navigate to the profile page
+    this.router.navigate([`/detail/${plantId}`]);  // Navigate to the profile page
   }
 
   addPlant(): void {

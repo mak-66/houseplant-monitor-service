@@ -20,6 +20,7 @@ export interface Plant {
   moistureLog: {Timestamp: Timestamp, number: number} []; // tracks the moisture levels over time
   temperatureLog: {Timestamp: Timestamp, number: number}[]; // tracks the temperature levels over time
   lightLog: Timestamp[]; // tracks when the light levels were above a certain threshold (0)
+  plantImage: string // base64 image of the plant
 }
 
 @Injectable({
@@ -110,15 +111,22 @@ export class houseplantService {
     });
   }  
   
-  async addPlant(newPlant: Partial<Plant>): Promise<string> {
+  async addPlant(newPlant: Partial<Plant>, imageFile?: File): Promise<string> {
     try {
+
+      // handles if the user inputs an image file
+      let plantImage = '';
+      if (imageFile) {
+          plantImage = await this.convertImageToBase64(imageFile);
+      }
+
       const plantDocRef = doc(this.plantCollection);
-      const id = plantDocRef.id; // Get the generated ID
-  
-      // Add the plant to Firestore, including the generated ID
+      const id = plantDocRef.id;
+
       await setDoc(plantDocRef, {
-        ...newPlant,
-        id,
+          ...newPlant,
+          id,
+          plantImage
       });
   
       console.log('Plant successfully added with ID:', id);
@@ -477,4 +485,16 @@ export class houseplantService {
     // Navigate to home page
     await this.router.navigate(['/']);
   }
+
+  async convertImageToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const base64String = reader.result as string;
+            resolve(base64String);
+        };
+        reader.onerror = (error) => reject(error);
+        reader.readAsDataURL(file);
+    });
+}
 }

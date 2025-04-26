@@ -14,7 +14,7 @@ import { Timestamp } from '@angular/fire/firestore';
 export class AddPlantComponent {
   private router = inject(Router);
   private houseplantService = inject(houseplantService);
-
+  selectedImage?: File;
   newPlant: Partial<Plant> = {
     name: '',
     minimumMoisture: 0,
@@ -25,9 +25,17 @@ export class AddPlantComponent {
     lightLog: [],
   };
 
+
+  onImageSelected(event: any) {
+      const file = event.target.files[0];
+      if (file && file.type.startsWith('image/')) {
+          this.selectedImage = file;
+      }
+  }
+
   async onSubmit() {
     try {
-      const plantId = await this.houseplantService.addPlant(this.newPlant);
+      const plantId = await this.houseplantService.addPlant(this.newPlant, this.selectedImage);
       if (plantId !== "Failed to add plant") {
         console.log('Plant added successfully');
         this.router.navigate(['/gallery']);

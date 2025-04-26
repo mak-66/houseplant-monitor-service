@@ -10,7 +10,7 @@ import { houseplantService, Plant } from '../../services/houseplant-service.serv
 @Component({
   selector: 'app-signup',
   standalone: true,
-  imports: [MatToolbarModule, MatIconModule, MatCardModule, MatFormFieldModule, FormsModule, RouterLink],
+  imports: [MatToolbarModule, MatIconModule, MatCardModule, MatFormFieldModule, FormsModule],
   templateUrl: './signup.component.html',
   styleUrl: './signup.component.css'
 })

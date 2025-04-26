@@ -10,7 +10,7 @@
     <div class="outer-box">
         <div class="inner-box">
             <div class="headings">
-                <p>Set Water Oz</p>
+                <p>Set Water (mL)</p>
                 <p>Set Moisture Level</p>
             </div>
             <form (ngSubmit)="updateSettings()">
@@ -50,6 +50,9 @@
                     <h3>Temperature History</h3>
                     <canvas #temperatureChart id="temperatureChart"></canvas>
                 </div>
+            </div>
+            <div class="back">
+                <button (click)="back()" class="back-button">Back to Gallery</button>
             </div>
         </div>
 

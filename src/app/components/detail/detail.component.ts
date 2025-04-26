@@ -216,4 +216,8 @@ export class DetailComponent implements OnInit, AfterViewInit {
           );
       }
   }
+  
+  back() {
+    this.router.navigate(['/gallery']);
+  }
 }

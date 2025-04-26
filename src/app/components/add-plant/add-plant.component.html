@@ -38,6 +38,14 @@
                     required>
             </div>
 
+            <div>
+                <input 
+                    type="file" 
+                    (change)="onImageSelected($event)"
+                    accept="image/*"
+                    class="input-field">
+            </div>
+
             <button 
                 type="submit" 
                 class="submit-button"
