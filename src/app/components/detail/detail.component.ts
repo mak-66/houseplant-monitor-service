@@ -7,6 +7,7 @@ import { Plant } from '../../services/houseplant-service.service';
 import { Timestamp } from '@angular/fire/firestore';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms'; // Import FormsModule
+import { interval, Subscription } from 'rxjs';
 
 Chart.register(...registerables);
 
@@ -24,15 +25,16 @@ export class DetailComponent implements OnInit, AfterViewInit {
 
   plant: Plant | null = null;
   plantId: string = '';
-  private charts: Chart[] = [];
+  charts: Chart[] = [];
   waterVolume: number = 0;
   moistureLevel: number = 0;
   isLightOn: boolean = false;
+  updateSubscription: Subscription | null = null;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private houseplantService: houseplantService
+    private houseplantService: houseplantService,
   ) {}
 
   async loadPlantDetails() {
@@ -66,9 +68,10 @@ export class DetailComponent implements OnInit, AfterViewInit {
 
   ngOnInit() {
     this.route.params.subscribe(params => {
-      this.plantId = params['plantId']; // Note: case sensitive!
+      this.plantId = params['plantId'];
       console.log('Plant ID from route:', this.plantId);
       this.loadPlantDetails();
+      this.startAutoUpdate();
     });
   }
 
@@ -76,6 +79,15 @@ export class DetailComponent implements OnInit, AfterViewInit {
     if (this.plant) {
       this.initializeCharts();
     }
+  }
+
+  ngOnDestroy() {
+    // Clean up subscription when component is destroyed
+    if (this.updateSubscription) {
+        this.updateSubscription.unsubscribe();
+    }
+    // Clean up charts
+    this.charts.forEach(chart => chart.destroy());
   }
 
   async updateSettings() {
@@ -86,6 +98,13 @@ export class DetailComponent implements OnInit, AfterViewInit {
     } catch (error) {
         console.error('Error updating plant settings:', error);
     }
+  }
+
+  private startAutoUpdate() {
+    // Update every 30 seconds
+    this.updateSubscription = interval(30000).subscribe(() => {
+        this.loadPlantDetails();
+    });
   }
 
   private updateCharts() {
@@ -103,51 +122,6 @@ export class DetailComponent implements OnInit, AfterViewInit {
     });
   }
 
-  private initializeCharts() {
-    if (this.plant) {
-      // Moisture Chart
-      this.charts.push(new Chart(this.moistureChart.nativeElement, {
-        type: 'line',
-        data: {
-          labels: this.getLast30Days(),
-          datasets: [{
-            label: 'Moisture Level (%)',
-            data: this.getMoistureData(),
-            borderColor: 'rgb(75, 192, 192)',
-            tension: 0.1
-          }]
-        }
-      }));
-
-      // Sunlight Chart
-      this.charts.push(new Chart(this.sunlightChart.nativeElement, {
-        type: 'bar',
-        data: {
-          labels: this.getLast7Days(),
-          datasets: [{
-            label: 'Hours of Sunlight',
-            data: this.getSunlightHours(),
-            backgroundColor: 'rgb(255, 205, 86)'
-          }]
-        }
-      }));
-
-      // Temperature Chart
-      this.charts.push(new Chart(this.temperatureChart.nativeElement, {
-        type: 'line',
-        data: {
-          labels: this.getLast24Hours(),
-          datasets: [{
-            label: 'Temperature (°C)',
-            data: this.getTemperatureData(),
-            borderColor: 'rgb(255, 99, 132)',
-            tension: 0.1
-          }]
-        }
-      }));
-    }
-  }
-
   getCurrentMoisture(): number {
     if (!this.plant?.moistureLog.length) return 0;
     return this.plant.moistureLog[this.plant.moistureLog.length - 1].number;
@@ -159,45 +133,162 @@ export class DetailComponent implements OnInit, AfterViewInit {
     return formatDistanceToNow(lastWatering.toDate(), { addSuffix: true });
   }
 
-  private getLast30Days(): string[] {
-    return Array.from({length: 30}, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      return date.toLocaleDateString();
-    }).reverse();
-  }
-
-  private getLast7Days(): string[] {
-    return Array.from({length: 7}, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      return date.toLocaleDateString();
-    }).reverse();
-  }
-
-  private getLast24Hours(): string[] {
-    return Array.from({length: 24}, (_, i) => {
-      const date = new Date();
-      date.setHours(date.getHours() - i);
-      return date.toLocaleTimeString();
-    }).reverse();
-  }
-
   private getMoistureData(): number[] {
     if (!this.plant?.moistureLog) return [];
-    return this.plant.moistureLog.map(log => log.number);
-  }
-
-  private getSunlightHours(): number[] {
-    if (!this.plant?.lightLog) return [];
-    // Convert timestamps to daily hours
-    // This is a simplified version - you'll need to implement the actual logic
-    return [12, 10, 8, 13, 14, 12, 10];
+    
+    // get the last 30 days of data based on timestamp
+    const sortedLog = [...this.plant.moistureLog].sort((a, b) =>
+        a.Timestamp.seconds - b.Timestamp.seconds
+    ).filter(log => {
+        const logDate = log.Timestamp.toDate();
+        const now = new Date();
+        const diffInDays = Math.floor((now.getTime() - logDate.getTime()) / (1000 * 3600 * 24));
+        return diffInDays <= 30;
+    });
+    
+    return sortedLog.map(log => Number(log.number.toFixed(2))); // Round to 2 decimal places
   }
 
   private getTemperatureData(): number[] {
     if (!this.plant?.temperatureLog) return [];
-    return this.plant.temperatureLog.map(log => log.number);
+    // Sort by timestamp to ensure chronological order
+    const sortedLog = [...this.plant.temperatureLog].sort((a, b) => 
+        a.Timestamp.seconds - b.Timestamp.seconds
+    );
+
+    // get the last 30 days of data based on timestamp
+    const lastMonth = sortedLog.filter(log => {
+        const logDate = log.Timestamp.toDate();
+        const now = new Date();
+        const diffInDays = Math.floor((now.getTime() - logDate.getTime()) / (1000 * 3600 * 24));
+        return diffInDays <= 30;
+    });
+
+    return lastMonth.map(log => log.number);
+  }
+
+  private getSunlightHours(): number[] {
+    if (!this.plant?.lightLog) return [];
+    
+    // Group timestamps by day
+    const dailyCounts = new Map<string, number>();
+    
+    this.plant.lightLog.forEach(timestamp => {
+        const date = timestamp.toDate();
+        const dateKey = date.toLocaleDateString();
+        dailyCounts.set(dateKey, (dailyCounts.get(dateKey) || 0) + 1);
+    });
+
+    // Convert to array of counts in chronological order
+    const sortedDates = Array.from(dailyCounts.keys()).sort((a, b) => 
+        new Date(a).getTime() - new Date(b).getTime()
+    );
+
+    // get the last 30 days of data
+    const lastMonth = sortedDates.slice(-30);
+    
+    return lastMonth.map(date => dailyCounts.get(date) || 0);
+  }
+
+  private initializeCharts() {
+    if (this.plant) {
+        // Moisture Chart
+        const sortedMoistureLog = [...this.plant.moistureLog].sort((a, b) => 
+            a.Timestamp.seconds - b.Timestamp.seconds
+        );
+
+        this.charts.push(new Chart(this.moistureChart.nativeElement, {
+            type: 'line',
+            data: {
+                labels: sortedMoistureLog.map(log => {
+                    const date = log.Timestamp.toDate();
+                    return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+                }),
+                datasets: [{
+                    label: 'Moisture Level (%)',
+                    data: sortedMoistureLog.map(log => log.number),
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        }));
+
+        // Sunlight Chart
+        const dailySunlight = this.getSunlightHours();
+        const uniqueDates = Array.from(new Set(
+            this.plant.lightLog.map(ts => ts.toDate().toLocaleDateString())
+        )).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+        this.charts.push(new Chart(this.sunlightChart.nativeElement, {
+            type: 'bar',
+            data: {
+                labels: uniqueDates,
+                datasets: [{
+                    label: 'Light Events per Day',
+                    data: dailySunlight,
+                    backgroundColor: 'rgb(255, 205, 86)'
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    },
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        }));
+
+        // Temperature Chart
+        const sortedTempLog = [...this.plant.temperatureLog].sort((a, b) => 
+            a.Timestamp.seconds - b.Timestamp.seconds
+        );
+
+        this.charts.push(new Chart(this.temperatureChart.nativeElement, {
+            type: 'line',
+            data: {
+                labels: sortedTempLog.map(log => {
+                    const date = log.Timestamp.toDate();
+                    return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+                }),
+                datasets: [{
+                    label: 'Temperature (°C)',
+                    data: sortedTempLog.map(log => log.number),
+                    borderColor: 'rgb(255, 99, 132)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                }
+            }
+        }));
+    }
   }
 
   waterPlant() {
