@@ -201,6 +201,9 @@ export class houseplantService {
       if (!this.currentAccount) {
         throw new Error('No current account is logged in');
       }
+
+      const plant = this.ownedPlantsData.find(p => p.id === plantId);
+      const plantName = plant ? plant.name : 'Unknown Plant';
   
       // Delete the plant from the "Plants" collection
       const plantDocRef = doc(this.firestore, 'Plants', plantId);
@@ -230,6 +233,11 @@ export class houseplantService {
         ownedPlants: updatedOwnedPlants,
       };
       console.log('Local currentAccount updated successfully');
+
+      // update the mqtt broker
+      // Example: mosquitto_pub -t cs326/plantMonitor/utility -m "remove Justin_Branches" -h iot.cs.calvin.edu -u cs326 -P piot326
+
+      this.mqttService.publish('cs326/plantMonitor/utility', `remove ${plantName}`);
     } catch (error) {
       console.error('Error deleting plant:', error);
       throw error;
