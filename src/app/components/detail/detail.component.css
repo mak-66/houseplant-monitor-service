@@ -180,10 +180,15 @@ form {
     background-color: #dbd041;
 }
 
-.back-button {
-    margin-top: 1rem;
-    margin-left: 40%;
+.back {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.button {
     padding: 0.5rem 1rem;
+    margin: 0rem 1rem;
     background-color: #666;
     color: white;
     border: none;
@@ -192,6 +197,13 @@ form {
     width: 20%;
 }
 
-.back-button:hover {
-    background-color: #555;
+#delete-button {
+    background-color: #d9534f; /* Bootstrap danger color */
+}
+#delete-button:hover {
+    background-color: #c9302c; /* Darker shade for hover */
+}
+
+#back-button:hover {
+    background-color: #444;
 }

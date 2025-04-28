@@ -311,4 +311,15 @@ export class DetailComponent implements OnInit, AfterViewInit {
   back() {
     this.router.navigate(['/gallery']);
   }
+
+  deletePlant() {
+    if (this.plant) {
+        this.houseplantService.deletePlant(this.plant.id).then(() => {
+            console.log('Plant deleted successfully');
+            this.router.navigate(['/gallery']);
+        }).catch(error => {
+            console.error('Error deleting plant:', error);
+        });
+    }
+  }
 }
