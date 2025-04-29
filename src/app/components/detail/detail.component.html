@@ -3,37 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Page</title>
+    <title>Detail Page</title>
     <link rel="stylesheet" href="detail.component.css"> <!-- Link to the external CSS file -->
 </head>
 <body>
     <div class="outer-box">
         <div class="inner-box">
-            <div class="headings">
-                <p>Set Water (mL)</p>
-                <p>Set Moisture Level</p>
+            <!-- Basic Info Section -->
+            <div class="settings-section">
+                <h3>Plant Information</h3>
+                <div class="form-group">
+                    <label for="plantName">Plant Name</label>
+                    <input 
+                        type="text" 
+                        class="input-field" 
+                        [(ngModel)]="plantName" 
+                        name="plantName"
+                        placeholder="Plant Name">
+                </div>
             </div>
-            <form (ngSubmit)="updateSettings()">
-                <input 
-                    type="number" 
-                    class="input-field" 
-                    [(ngModel)]="waterVolume" 
-                    name="waterVolume"
-                    placeholder="Water Volume (mL)" 
-                    min="0">
-                <input 
-                    type="number" 
-                    class="input-field" 
-                    [(ngModel)]="moistureLevel" 
-                    name="moistureLevel"
-                    placeholder="Moisture Level (%)" 
-                    min="0"
-                    max="24">
-                <button type="submit" class="login-button">Update Settings</button>
-            </form>
-            <div class="control-buttons">
-                <button (click)="waterPlant()" class="water-button">Water Now</button>
-                <button (click)="toggleLight()" class="light-button">
+    
+            <!-- Water Settings Section -->
+            <div class="settings-section">
+                <h3>Watering Settings</h3>
+                <div class="form-group">
+                    <label for="moistureLevel">Minimum Moisture Level (%)</label>
+                    <input 
+                        type="number" 
+                        class="input-field" 
+                        [(ngModel)]="moistureLevel" 
+                        name="moistureLevel"
+                        placeholder="Minimum Moisture Level" 
+                        min="0"
+                        max="100">
+                    <label for="waterVolume">Water Volume per Watering (mL)</label>
+                    <input 
+                        type="number" 
+                        class="input-field" 
+                        [(ngModel)]="waterVolume" 
+                        name="waterVolume"
+                        placeholder="Water Volume" 
+                        min="0">
+                </div>
+            </div>
+    
+            <!-- Light Settings Section -->
+            <div class="settings-section">
+                <h3>Light Settings</h3>
+                <div class="form-group">
+                    <label for="minimumLight">Required Light (hours per 48h)</label>
+                    <input 
+                        type="number" 
+                        class="input-field" 
+                        [(ngModel)]="minimumLight" 
+                        name="minimumLight"
+                        placeholder="Minimum Light Hours" 
+                        min="0"
+                        max="48">
+                    <label for="lightHours">Light Duration When Active (hours)</label>
+                    <input 
+                        type="number" 
+                        class="input-field" 
+                        [(ngModel)]="lightHours" 
+                        name="lightHours"
+                        placeholder="Light Hours" 
+                        min="0"
+                        max="24">
+                </div>
+            </div>
+    
+            <!-- Hardware Configuration Section -->
+            <div class="settings-section">
+                <h3>Hardware Configuration</h3>
+                <div class="form-group">
+                    <label for="moistureChannelNum">Moisture Sensor Channel</label>
+                    <input 
+                        type="number" 
+                        class="input-field" 
+                        [(ngModel)]="moistureChannelNum" 
+                        name="moistureChannelNum"
+                        placeholder="Moisture Channel" 
+                        min="0">
+                    <label for="lightChannelNum">Light Sensor Channel</label>
+                    <input 
+                        type="number" 
+                        class="input-field" 
+                        [(ngModel)]="lightChannelNum" 
+                        name="lightChannelNum"
+                        placeholder="Light Channel" 
+                        min="0">
+                    <label for="pumpNum">Pump Number</label>
+                    <input 
+                        type="number" 
+                        class="input-field" 
+                        [(ngModel)]="pumpNum" 
+                        name="pumpNum"
+                        placeholder="Pump Number" 
+                        min="0">
+                    <label for="lightActuatorNum">Light Actuator Number</label>
+                    <input 
+                        type="number" 
+                        class="input-field" 
+                        [(ngModel)]="lightActuatorNum" 
+                        name="lightActuatorNum"
+                        placeholder="Light Actuator" 
+                        min="0">
+                </div>
+            </div>
+    
+            <div class="buttons-section">
+                <button type="submit" id="submit-button" class="button" (click)="updateSettings()">Update Settings</button>
+                <button (click)="waterPlant()" id="water-button" class="button">Water Now</button>
+                <button (click)="toggleLight()" id="light-button" class="button">
                     {{isLightOn ? 'Turn Light Off' : 'Turn Light On'}}
                 </button>
             </div>
@@ -51,7 +132,7 @@
                     <canvas #temperatureChart id="temperatureChart"></canvas>
                 </div>
             </div>
-            <div class="back">
+            <div class="buttons-section">
                 <button (click)="back()" id="back-button" class="button">Back to Gallery</button>
                 <button (click)="deletePlant()" id="delete-button" class="button">Delete Plant</button>
             </div>

@@ -25,11 +25,28 @@ export class DetailComponent implements OnInit, AfterViewInit {
 
   plant: Plant | null = null;
   plantId: string = '';
+
+  // Basic Info
+  plantName: string = '';
+
+  // Moisture and Water Settings
+  waterVolume: number = 0;      // already exists
+  moistureLevel: number = 0;    // already exists
+
+  // Light Settings
+  minimumLight: number = 0;
+  lightHours: number = 0;
+
+  // Hardware Configuration
+  moistureChannelNum: number = 0;
+  lightChannelNum: number = 0;
+  pumpNum: number = 0;
+  lightActuatorNum: number = 0;
+  
   charts: Chart[] = [];
-  waterVolume: number = 0;
-  moistureLevel: number = 0;
   isLightOn: boolean = false;
   updateSubscription: Subscription | null = null;
+
 
   constructor(
     private route: ActivatedRoute,
@@ -46,9 +63,15 @@ export class DetailComponent implements OnInit, AfterViewInit {
         const returnedPlant = await this.houseplantService.fetchPlantByID(this.plantId);
         if (returnedPlant) {
             this.plant = returnedPlant as Plant;
-            // Initialize form values with current plant settings
+            this.plantName = this.plant.name;
             this.waterVolume = this.plant.waterVolume;
             this.moistureLevel = this.plant.minimumMoisture;
+            this.minimumLight = this.plant.minimumLight;
+            this.lightHours = this.plant.lightHours;
+            this.moistureChannelNum = this.plant.moistureChannelNum;
+            this.lightChannelNum = this.plant.lightChannelNum;
+            this.pumpNum = this.plant.pumpNum;
+            this.lightActuatorNum = this.plant.lightActuatorNum;
         } else {
             console.error('Plant not found');
             this.router.navigate(['/gallery']);
@@ -92,13 +115,23 @@ export class DetailComponent implements OnInit, AfterViewInit {
 
   async updateSettings() {
     try {
-        const updates: Partial<Plant> = {waterVolume: this.waterVolume, minimumMoisture: this.moistureLevel};
+        const updates: Partial<Plant> = {
+            name: this.plantName,
+            minimumMoisture: this.moistureLevel,
+            waterVolume: this.waterVolume,
+            minimumLight: this.minimumLight,
+            lightHours: this.lightHours,
+            moistureChannelNum: this.moistureChannelNum,
+            lightChannelNum: this.lightChannelNum,
+            pumpNum: this.pumpNum,
+            lightActuatorNum: this.lightActuatorNum
+        };
         await this.houseplantService.updatePlant(this.plant!.id, updates);
         console.log('Plant settings updated successfully');
     } catch (error) {
         console.error('Error updating plant settings:', error);
     }
-  }
+}
 
   private startAutoUpdate() {
     // Update every 30 seconds

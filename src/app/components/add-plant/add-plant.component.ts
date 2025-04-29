@@ -1,5 +1,5 @@
-import { Component, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, inject, ViewChild } from '@angular/core';
+import { FormsModule, NgForm } from '@angular/forms';
 import { Router } from '@angular/router';
 import { houseplantService, Plant } from '../../services/houseplant-service.service';
 import { Timestamp } from '@angular/fire/firestore';
@@ -30,12 +30,33 @@ export class AddPlantComponent {
     pumpNum: 0,
     lightActuatorNum: 0
   };
+  @ViewChild('plantForm') plantForm!: NgForm;
+
 
   onImageSelected(event: any) {
     const file = event.target.files[0];
     if (file && file.type.startsWith('image/')) {
       this.selectedImage = file;
     }
+  }
+
+  isFieldInvalid(fieldName: string): boolean {
+    const field = this.plantForm?.form.get(fieldName);
+    return field ? (field.invalid && (field.dirty || field.touched)) : false;
+  }
+
+  getFieldError(fieldName: string): string {
+    const field = this.plantForm?.form.get(fieldName);
+    if (field?.errors) {
+      if (field.errors['required']) return 'This field is required';
+      if (field.errors['min']) return 'Value must be greater than or equal to 0';
+      if (field.errors['max']) {
+        if (fieldName === 'minimumMoisture') return 'Value must be less than or equal to 100';
+        if (fieldName === 'minimumLight') return 'Value must be less than or equal to 48';
+        if (fieldName === 'lightHours') return 'Value must be less than or equal to 24';
+      }
+    }
+    return '';
   }
 
   async onSubmit() {

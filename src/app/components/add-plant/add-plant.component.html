@@ -9,6 +9,7 @@
                     id="plantName"
                     name="plantName"
                     class="input-field"
+                    [class.is-invalid]="isFieldInvalid('plantName')"
                     [(ngModel)]="newPlant.name" 
                     required>
             </div>
@@ -21,6 +22,7 @@
                     id="minimumMoisture"
                     name="minimumMoisture"
                     class="input-field"
+                    [class.is-invalid]="isFieldInvalid('minimumMoisture')"
                     [(ngModel)]="newPlant.minimumMoisture"
                     min="0"
                     max="100"
@@ -34,6 +36,7 @@
                     id="waterVolume"
                     name="waterVolume"
                     class="input-field"
+                    [class.is-invalid]="isFieldInvalid('waterVolume')"
                     [(ngModel)]="newPlant.waterVolume"
                     min="0"
                     required>
@@ -47,6 +50,7 @@
                     id="minimumLight"
                     name="minimumLight"
                     class="input-field"
+                    [class.is-invalid]="isFieldInvalid('minimumLight')"
                     [(ngModel)]="newPlant.minimumLight"
                     min="0"
                     max="48"
@@ -60,6 +64,7 @@
                     id="lightHours"
                     name="lightHours"
                     class="input-field"
+                    [class.is-invalid]="isFieldInvalid('lightHours')"
                     [(ngModel)]="newPlant.lightHours"
                     min="0"
                     max="24"
@@ -74,6 +79,7 @@
                     id="moistureChannelNum"
                     name="moistureChannelNum"
                     class="input-field"
+                    [class.is-invalid]="isFieldInvalid('moistureChannelNum')"
                     [(ngModel)]="newPlant.moistureChannelNum"
                     min="0"
                     required>
@@ -86,6 +92,7 @@
                     id="lightChannelNum"
                     name="lightChannelNum"
                     class="input-field"
+                    [class.is-invalid]="isFieldInvalid('lightChannelNum')"
                     [(ngModel)]="newPlant.lightChannelNum"
                     min="0"
                     required>
@@ -98,6 +105,7 @@
                     id="pumpNum"
                     name="pumpNum"
                     class="input-field"
+                    [class.is-invalid]="isFieldInvalid('pumpNum')"
                     [(ngModel)]="newPlant.pumpNum"
                     min="0"
                     required>
@@ -110,6 +118,7 @@
                     id="lightActuatorNum"
                     name="lightActuatorNum"
                     class="input-field"
+                    [class.is-invalid]="isFieldInvalid('lightActuatorNum')"
                     [(ngModel)]="newPlant.lightActuatorNum"
                     min="0"
                     required>
