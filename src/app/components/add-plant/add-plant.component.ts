@@ -20,17 +20,22 @@ export class AddPlantComponent {
     minimumMoisture: 0,
     waterVolume: 0,
     waterLog: [],
+    minimumLight: 0,
+    lightHours: 0,
     moistureLog: [],
     temperatureLog: [],
     lightLog: [],
+    moistureChannelNum: 0,
+    lightChannelNum: 0,
+    pumpNum: 0,
+    lightActuatorNum: 0
   };
 
-
   onImageSelected(event: any) {
-      const file = event.target.files[0];
-      if (file && file.type.startsWith('image/')) {
-          this.selectedImage = file;
-      }
+    const file = event.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+      this.selectedImage = file;
+    }
   }
 
   async onSubmit() {
@@ -38,9 +43,12 @@ export class AddPlantComponent {
       const plantId = await this.houseplantService.addPlant(this.newPlant, this.selectedImage);
       if (plantId !== "Failed to add plant") {
         console.log('Plant added successfully');
+        // Send MQTT message to configure the new plant
+        this.houseplantService.mqttService.publish(
+          'cs326/plantMonitor/utility',
+          `add ${this.newPlant.name} ${this.newPlant.moistureChannelNum} ${this.newPlant.lightChannelNum} ${this.newPlant.pumpNum} ${this.newPlant.lightActuatorNum}`
+        );
         this.router.navigate(['/gallery']);
-      } else {
-        console.error('Failed to add plant');
       }
     } catch (error) {
       console.error('Error adding plant:', error);

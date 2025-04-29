@@ -13,6 +13,7 @@
                     required>
             </div>
 
+            <!-- Moisture Settings -->
             <div class="form-group">
                 <label for="minimumMoisture">Minimum Moisture Level (%)</label>
                 <input 
@@ -38,12 +39,95 @@
                     required>
             </div>
 
-            <div>
+            <!-- Light Settings -->
+            <div class="form-group">
+                <label for="minimumLight">Minimum Light (hours per 48 hours)</label>
                 <input 
-                    type="file" 
-                    (change)="onImageSelected($event)"
-                    accept="image/*"
-                    class="input-field">
+                    type="number" 
+                    id="minimumLight"
+                    name="minimumLight"
+                    class="input-field"
+                    [(ngModel)]="newPlant.minimumLight"
+                    min="0"
+                    max="48"
+                    required>
+            </div>
+
+            <div class="form-group">
+                <label for="lightHours">Light Dispensed when Below Minimum (hours)</label>
+                <input 
+                    type="number" 
+                    id="lightHours"
+                    name="lightHours"
+                    class="input-field"
+                    [(ngModel)]="newPlant.lightHours"
+                    min="0"
+                    max="24"
+                    required>
+            </div>
+
+            <!-- Hardware Configuration -->
+            <div class="form-group">
+                <label for="moistureChannelNum">Moisture Sensor Channel</label>
+                <input 
+                    type="number" 
+                    id="moistureChannelNum"
+                    name="moistureChannelNum"
+                    class="input-field"
+                    [(ngModel)]="newPlant.moistureChannelNum"
+                    min="0"
+                    required>
+            </div>
+
+            <div class="form-group">
+                <label for="lightChannelNum">Light Sensor Channel</label>
+                <input 
+                    type="number" 
+                    id="lightChannelNum"
+                    name="lightChannelNum"
+                    class="input-field"
+                    [(ngModel)]="newPlant.lightChannelNum"
+                    min="0"
+                    required>
+            </div>
+
+            <div class="form-group">
+                <label for="pumpNum">Pump Number</label>
+                <input 
+                    type="number" 
+                    id="pumpNum"
+                    name="pumpNum"
+                    class="input-field"
+                    [(ngModel)]="newPlant.pumpNum"
+                    min="0"
+                    required>
+            </div>
+
+            <div class="form-group">
+                <label for="lightActuatorNum">Light Actuator Number</label>
+                <input 
+                    type="number" 
+                    id="lightActuatorNum"
+                    name="lightActuatorNum"
+                    class="input-field"
+                    [(ngModel)]="newPlant.lightActuatorNum"
+                    min="0"
+                    required>
+            </div>
+
+            <div class="form-group">
+                <div class="image-upload">
+                    <label for="plantImage">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <span class="upload-text">Click to upload plant image</span>
+                        <span class="upload-text">or drag and drop here</span>
+                    </label>
+                    <input 
+                        type="file" 
+                        id="plantImage"
+                        (change)="onImageSelected($event)"
+                        accept="image/*">
+                </div>
             </div>
 
             <button 

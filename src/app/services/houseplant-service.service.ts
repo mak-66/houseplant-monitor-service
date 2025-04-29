@@ -5,6 +5,8 @@ import { Observable, firstValueFrom,map,BehaviorSubject, combineLatest } from 'r
 import { Router } from '@angular/router';
 import { MqttMessage, MqttService } from './mqtt.service';
 
+// set variable regarding how often the light sensors ping the broker (in nanoseconds)
+const lightPingInterval = 1000000000000; // 1000 seconds
 
 export interface Account {
   ownedPlants: string[];
@@ -14,13 +16,24 @@ export interface Account {
 export interface Plant {
   id: string;
   name: string;
+
   minimumMoisture: number; // determines when the plant needs watering
   waterVolume: number; // amount of water to be dispensed in mL
+
+  minimumLight: number; // minimum hours of light per 48 hours
+  lightHours: number; // amount of light to be dispensed in hours
+
   waterLog: Timestamp[];
   moistureLog: {Timestamp: Timestamp, number: number} []; // tracks the moisture levels over time
   temperatureLog: {Timestamp: Timestamp, number: number}[]; // tracks the temperature levels over time
   lightLog: Timestamp[]; // tracks when the light levels were above a certain threshold (0)
   plantImage: string // base64 image of the plant
+
+  // Information regarding the RPi ports used by the sensors
+  moistureChannelNum: number; 
+  lightChannelNum: number; 
+  pumpNum: number; 
+  lightActuatorNum: number;
 }
 
 @Injectable({
@@ -52,8 +65,6 @@ export class houseplantService {
         } as Account;
       },
     };
-
-    // Create a proper query
     const accountsQuery = query(collection(this.firestore, 'Accounts').withConverter(accountConverter));
     this.accounts$ = collectionData<Account>(accountsQuery);
 
@@ -64,32 +75,39 @@ export class houseplantService {
       fromFirestore: (snapshot: any) => {
         const data = snapshot.data();
         return {
-          id: data.id,
-          name: data.name,
-          minimumMoisture: data.minimumMoisture,
-          waterVolume: data.waterVolume,
-          waterLog: data.waterLog,
-          lightLog: data.lightLog,
+          id: snapshot.id,
+          name: data.name || '',
+          minimumMoisture: data.minimumMoisture || 0,
+          waterVolume: data.waterVolume || 0,
+          minimumLight: data.minimumLight || 0,
+          lightHours: data.lightHours || 0,
+          waterLog: data.waterLog || [],
+          moistureLog: data.moistureLog || [],
+          temperatureLog: data.temperatureLog || [],
+          lightLog: data.lightLog || [],
+          plantImage: data.plantImage || '', // base64 image of the plant
+          moistureChannelNum: data.moistureChannelNum || 0,
+          lightChannelNum: data.lightChannelNum || 0,
+          pumpNum: data.pumpNum || 0,
+          lightActuatorNum: data.lightActuatorNum || 0,
         } as Plant;
       },
     };
-
-    // Create a proper query for plants
     const plantsQuery = query(collection(this.firestore, 'Plants').withConverter(plantConverter));
     this.plants$ = collectionData<Plant>(plantsQuery);
  
 
-    // Listen for auth state changes and set the user property
+    // Listen for auth state changes and set the local data
     onAuthStateChanged(this.auth, (currentUser) => {
       this.user = currentUser;
       console.log('Auth state changed, user is now:', this.user);
       if (this.user && this.user.email) {
         // Fetch the current account based on the logged-in user
         this.fetchAccount(this.user.email).then(async (account) => { // user logged in
-          this.currentAccount = account;            
-          // Fetch plants for the current account
-          const plants = await this.fetchAccountPlants();
-          this.ownedPlantsData = plants;
+          this.currentAccount = account;      
+
+          // Fetch plants of the current account
+          this.ownedPlantsData = await this.fetchAccountPlants();
           console.log('Owned plants data:', this.ownedPlantsData);
 
           // Only subscribe to MQTT topics after we have the plant data
@@ -103,7 +121,7 @@ export class houseplantService {
           });
 
           // Monitor + Publish instructions to maintain plant conditions
-          setInterval(() => this.monitorPlantConditions(), 3000);
+          setInterval(() => this.monitorPlantConditions(), 30000);
         });
       } else {
         this.currentAccount = null;
@@ -113,7 +131,6 @@ export class houseplantService {
   
   async addPlant(newPlant: Partial<Plant>, imageFile?: File): Promise<string> {
     try {
-
       // handles if the user inputs an image file
       let plantImage = '';
       if (imageFile) {
@@ -136,22 +153,18 @@ export class houseplantService {
         const accountsQuery = query(
           collection(this.firestore, 'Accounts'),
           where('email', '==', this.currentAccount.email)
-        );
-      
-        const querySnapshot = await getDocs(accountsQuery);
-      
+        );      
+        const querySnapshot = await getDocs(accountsQuery);      
         if (querySnapshot.empty) {
           throw new Error(`No account found with email: ${this.currentAccount.email}`);
-        }
-      
+        }      
         const accountDocRef = querySnapshot.docs[0].ref;
       
         // Update the 'ownedPlants' array by adding the new plant ID
         await updateDoc(accountDocRef, {
           ownedPlants: [...this.currentAccount.ownedPlants, id],
-        });
-      
-        console.log("Owner's 'ownedPlants' updated successfully");
+        });      
+        console.log("Firestore 'ownedPlants' updated successfully");
 
         // Update the local `currentAccount` to reflect the change
         this.currentAccount = {
@@ -180,7 +193,7 @@ export class houseplantService {
         throw new Error(`Plant with ID ${plantId} does not exist`);
       }
   
-      // Update the plant document with the provided updates
+      // Update the plant document with the provided updates, adding new fields if necessary
       await updateDoc(plantDocRef, updates);
 
       // Update the local `ownedPlantsData` to reflect the changes
@@ -190,6 +203,17 @@ export class houseplantService {
       } else {
         console.error(`Plant with ID ${plantId} not found in local data`);
       }
+
+      // Publish the updated plant data to the MQTT broker
+          // delete the plant in mqtt
+      const plant = this.ownedPlantsData[plantIndex];
+      const plantName = plant ? plant.name : 'Unknown Plant';
+      this.mqttService.publish('cs326/plantMonitor/utility', `remove ${plantName}`);
+      
+          // create the plant with the new local data
+          //“add <plant name> <moistureChannelNum> <lightChannelNum> <pumpNum> <lightActuatorNum>”
+      this.mqttService.publish('cs326/plantMonitor/utility', `add ${plantName} ${plant.moistureChannelNum} ${plant.lightChannelNum} ${plant.pumpNum} ${plant.lightActuatorNum}`);
+
     } catch (error) {
       console.error('Error updating plant:', error);
       throw error;
@@ -234,10 +258,9 @@ export class houseplantService {
       };
       console.log('Local currentAccount updated successfully');
 
-      // update the mqtt broker
-      // Example: mosquitto_pub -t cs326/plantMonitor/utility -m "remove Justin_Branches" -h iot.cs.calvin.edu -u cs326 -P piot326
-
+      // update RPi through the mqtt broker
       this.mqttService.publish('cs326/plantMonitor/utility', `remove ${plantName}`);
+
     } catch (error) {
       console.error('Error deleting plant:', error);
       throw error;
@@ -250,13 +273,11 @@ export class houseplantService {
         throw new Error('No current account is logged in');
       }
       
-      const ownedPlantIds = this.currentAccount.ownedPlants;
-      
+      const ownedPlantIds = this.currentAccount.ownedPlants;      
       if (ownedPlantIds.length === 0) {
         return [];
       }
       
-      // Modified query to use individual document references
       const plants: Plant[] = [];
       for (const plantId of ownedPlantIds) {
         const plantDoc = await getDoc(doc(this.firestore, 'Plants', plantId));
@@ -293,13 +314,12 @@ export class houseplantService {
       const plantName = topicParts[2]; // Extract the plant name from the topic
       const dataType = topicParts[4]; // Extract the data type from the topic
 
-      // Find the plant in the ownedPlantsData array
+      // finds the plant in the ownedPlantsData array
       const plant = this.ownedPlantsData.find(p => p.name === plantName);
       if (!plant) {
         console.error(`Plant with name ${plantName} not found in owned plants`);
         return;
       }
-
       console.log(`Received ${dataType} data for ${plantName}:`, message.payload);
 
       // updates the plants data both locally and in the database
@@ -338,11 +358,8 @@ export class houseplantService {
         return;
       }
   
-      // Fetch latest plant data
-      const plants = await this.fetchAccountPlants();
-  
-      console.log('Plants to monitor:', plants);
-      for (const plant of plants) {
+      console.log('Plants to monitor:', this.ownedPlantsData);
+      for (const plant of this.ownedPlantsData) {
         // Check if the plant has moisture readings
         if (plant.moistureLog && plant.moistureLog.length > 0) {
             // Get the latest moisture reading
@@ -350,16 +367,36 @@ export class houseplantService {
             
             // Check if moisture is below threshold
             const lastWateringTime = plant.waterLog[plant.waterLog.length-1]; // gets the last watering time
-            const currentTime = new Timestamp(Date.now()/1000, 0); // gets the current time
+            const currentTime = Timestamp.now(); // gets the current time in seconds
             const timeDifference = currentTime.seconds - lastWateringTime.seconds; // calculates the time difference in seconds
+            // waters the plant if necessary (allowing for a 10 minute cooldown)
             if (latestMoisture.number < plant.minimumMoisture && timeDifference > 600) {
                 console.log(`${plant.name} needs water! Current moisture: ${latestMoisture.number}%, Minimum: ${plant.minimumMoisture}%`);
                 // Publish MQTT command to water the plant
                 await this.waterPlant(plant.id);
             }
+        // Check if light is below threshold for the last 48 hours
+        if (plant.lightLog && plant.lightLog.length > 0) {
+            // filters for the last 48 hours of light data
+            const oldestAllowed = Math.floor(Date.now() / 1000) - (48 * 3600); // current seconds - 48 hours in seconds
+            const recentLightLogs = plant.lightLog.filter(log => log.seconds >= oldestAllowed);
+
+            // gets the number of light events in the last 48 hours
+            const numLightEventsLast48 = recentLightLogs.length;
+
+            // calculates amount of light the plant has received in hours using the number of light logs and the lightPingInterval
+            const lightReceivedNanoseconds = (lightPingInterval * numLightEventsLast48);
+            const lightReceivedHours = lightReceivedNanoseconds / 3600000000000; // convert nanoseconds to hours
+
+            if (lightReceivedHours < plant.minimumLight) {
+                console.log(`${plant.name} needs light! Light in last 2 days: ${lightReceivedHours}`);
+                // Publish MQTT command to turn on the light actuator
+                this.mqttService.publish(`cs326/plantMonitor/${plant.name}/in`, `light_on_${plant.lightHours}`);
+            }
         } else {
             console.log(`No moisture data available for plant: ${plant.name}`);
         }
+      }
     }
     } catch (error) {
       console.error('Error monitoring plant conditions:', error);
@@ -392,16 +429,23 @@ export class houseplantService {
       const plantDoc = await getDoc(plantDocRef);
       if (plantDoc.exists()) {
         const data = plantDoc.data();
-            return {
-                id: plantDoc.id,
-                name: data['name'] || '',
-                minimumMoisture: data['minimumMoisture'] || 0,
-                waterVolume: data['waterVolume'] || 0,
-                waterLog: data['waterLog'] || [],
-                moistureLog: data['moistureLog'] || [],
-                temperatureLog: data['temperatureLog'] || [],
-                lightLog: data['lightLog'] || []
-            } as Plant;        
+          return {
+            id: plantDoc.id,
+            name: data['name'] || '',
+            minimumMoisture: data['minimumMoisture'] || 0,
+            waterVolume: data['waterVolume'] || 0,
+            minimumLight: data['minimumLight'] || 0,
+            lightHours: data['lightHours'] || 0,
+            waterLog: data['waterLog'] || [],
+            moistureLog: data['moistureLog'] || [],
+            temperatureLog: data['temperatureLog'] || [],
+            lightLog: data['lightLog'] || [],
+            plantImage: data['plantImage'] || '',
+            moistureChannelNum: data['moistureChannelNum'] || 0,
+            lightChannelNum: data['lightChannelNum'] || 0,
+            pumpNum: data['pumpNum'] || 0,
+            lightActuatorNum: data['lightActuatorNum'] || 0
+          } as Plant;        
       } else {
         console.error(`No plant found with ID ${id}`);
         return null;
@@ -486,7 +530,7 @@ export class houseplantService {
     // Clear MQTT subscriptions for each plant
     if (this.ownedPlantsData) {
       for (const plant of this.ownedPlantsData) {
-        this.mqttService.unsubscribe(`cs326/plantMonitor/${plant.name}/out`);
+        this.mqttService.unsubscribe(`cs326/plantMonitor/${plant.name}/out/#`);
       }
     }
     
