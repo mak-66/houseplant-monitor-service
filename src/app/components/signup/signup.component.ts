@@ -22,16 +22,14 @@ export class SignupComponent {
 
   async onSignUp(): Promise<void> {
     try {
-      // Create an account object
+      // creates an account object
       const newAccount = {
         ownedPlants: [],
         email: this.email,
       };
 
-      // Call the createAccount method from houseplantService
+      // updates database and resets to login page
       await this.houseplantService.createUser(this.email, this.password, newAccount);
-
-      // Redirect to login page or profile page
       this.router.navigate(['/']);
     } catch (error) {
       console.error('Error during signup:', error);

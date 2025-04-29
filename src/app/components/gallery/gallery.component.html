@@ -15,11 +15,12 @@
     
     <div class="gallery">
 
-      @for (plant of ownedPlants; track plant.id) {
+      @for (plant of ownedPlants; track plant.id) { <!-- loops through ownedPlants array to display -->
         <div class="image-item" (click)="onPress(plant.id)">
           @if(plant.plantImage) {
             <img [src]="plant.plantImage" [alt]="plant.name">
           } @else {
+            <!-- provides a fallback image if none provided -->
             <img src="https://cdn-icons-png.flaticon.com/512/628/628283.png" alt="Default Image">
           }
           <p class="description">{{plant.name}}</p>

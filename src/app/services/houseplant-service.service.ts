@@ -5,9 +5,6 @@ import { Observable, firstValueFrom,map,BehaviorSubject, combineLatest } from 'r
 import { Router } from '@angular/router';
 import { MqttMessage, MqttService } from './mqtt.service';
 
-// set variable regarding how often the light sensors ping the broker (in nanoseconds)
-const lightPingInterval = 1000000000000; // 1000 seconds
-
 export interface Account {
   ownedPlants: string[];
   email: string;
@@ -52,8 +49,11 @@ export class houseplantService {
   public accounts$: Observable<Account[]>;
   public mqttService: MqttService = inject(MqttService); // Inject the MqttService
   
+  // set variable regarding how often the light sensors ping the broker (in nanoseconds)
+  public lightPingInterval = 1000000000000; // 1000 seconds
+  
   constructor() {
-    // Fetch all accounts from Firestore
+    // fetches all accounts from Firestore
     this.accountCollection = collection(this.firestore, 'Accounts');
     const accountConverter = {
       toFirestore: (account: Account) => account,
@@ -68,7 +68,7 @@ export class houseplantService {
     const accountsQuery = query(collection(this.firestore, 'Accounts').withConverter(accountConverter));
     this.accounts$ = collectionData<Account>(accountsQuery);
 
-    // Fetch all plants from Firestore
+    // fetches all plants from Firestore
     this.plantCollection = collection(this.firestore, 'Plants');
     const plantConverter = {
       toFirestore: (plant: Plant) => plant,
@@ -96,31 +96,28 @@ export class houseplantService {
     const plantsQuery = query(collection(this.firestore, 'Plants').withConverter(plantConverter));
     this.plants$ = collectionData<Plant>(plantsQuery);
  
-
-    // Listen for auth state changes and set the local data
+    // if the user logs in, update the current account and plants
     onAuthStateChanged(this.auth, (currentUser) => {
       this.user = currentUser;
       console.log('Auth state changed, user is now:', this.user);
       if (this.user && this.user.email) {
-        // Fetch the current account based on the logged-in user
+        // fetches the current account based on the logged-in user
         this.fetchAccount(this.user.email).then(async (account) => { // user logged in
           this.currentAccount = account;      
 
-          // Fetch plants of the current account
+          // fetches their plants and subscribes to their mqtt topics
           this.ownedPlantsData = await this.fetchAccountPlants();
           console.log('Owned plants data:', this.ownedPlantsData);
-
-          // Only subscribe to MQTT topics after we have the plant data
           this.subscribeToPlantData();
 
-          // Listen for incoming messages
+          // subscribes to all incoming mqtt messages and passes them to a handler
           this.mqttService.messages$.subscribe((message) => {
             if (!message) return; // Ignore null messages
             // console.log(message.topic, ' received MQTT message:', message.payload);
             this.handleMqttMessage(message);
           });
 
-          // Monitor + Publish instructions to maintain plant conditions
+          // monitors the plant condition for maintenance
           setInterval(() => this.monitorPlantConditions(), 30000);
         });
       } else {
@@ -160,18 +157,15 @@ export class houseplantService {
         }      
         const accountDocRef = querySnapshot.docs[0].ref;
       
-        // Update the 'ownedPlants' array by adding the new plant ID
+        // updates the users list of owned plant ids in firestore + locally
         await updateDoc(accountDocRef, {
           ownedPlants: [...this.currentAccount.ownedPlants, id],
         });      
         console.log("Firestore 'ownedPlants' updated successfully");
-
-        // Update the local `currentAccount` to reflect the change
         this.currentAccount = {
           ...this.currentAccount,
           ownedPlants: [...this.currentAccount.ownedPlants, id],
         };
-
         console.log('Local currentAccount updated successfully');
       }
       return id;
@@ -184,19 +178,16 @@ export class houseplantService {
 
   async updatePlant(plantId: string, updates: Partial<Plant>): Promise<void> {
     try {
-      // Reference the specific plant document by its ID
+      // gets the plant document reference from Firestore
       const plantDocRef = doc(this.firestore, 'Plants', plantId);
-  
-      // Check if the plant document exists
       const plantSnap = await getDoc(plantDocRef);
       if (!plantSnap.exists()) {
         throw new Error(`Plant with ID ${plantId} does not exist`);
       }
   
-      // Update the plant document with the provided updates, adding new fields if necessary
       await updateDoc(plantDocRef, updates);
 
-      // Update the local `ownedPlantsData` to reflect the changes
+      // updates local version of plant
       const plantIndex = this.ownedPlantsData.findIndex(plant => plant.id === plantId);
       if (plantIndex !== -1) {
         this.ownedPlantsData[plantIndex] = { ...this.ownedPlantsData[plantIndex], ...updates };
@@ -204,7 +195,7 @@ export class houseplantService {
         console.error(`Plant with ID ${plantId} not found in local data`);
       }
 
-      // Publish the updated plant data to the MQTT broker
+      // publishes the updated plant data to the MQTT broker
           // delete the plant in mqtt
       const plant = this.ownedPlantsData[plantIndex];
       const plantName = plant ? plant.name : 'Unknown Plant';
@@ -229,29 +220,28 @@ export class houseplantService {
       const plant = this.ownedPlantsData.find(p => p.id === plantId);
       const plantName = plant ? plant.name : 'Unknown Plant';
   
-      // Delete the plant from the "Plants" collection
+      // firestore delete plant
       const plantDocRef = doc(this.firestore, 'Plants', plantId);
       await deleteDoc(plantDocRef);
       console.log(`Plant with ID ${plantId} deleted successfully.`);
-  
-      // Query the "Accounts" collection to find the current user's document
+
+      // fetches owner account
       const accountsQuery = query(
         collection(this.firestore, 'Accounts'),
         where('email', '==', this.currentAccount.email)
       );
       const querySnapshot = await getDocs(accountsQuery);
-
       if (querySnapshot.empty) {
         throw new Error(`No account found with email: ${this.currentAccount.email}`);
       }
       const accountDocRef = querySnapshot.docs[0].ref;
 
-      // Remove the plant's ID from the owner's "ownedPlants" array
+      // removes from owner's owned plants list
       const updatedOwnedPlants = this.currentAccount.ownedPlants.filter(id => id !== plantId);
       await updateDoc(accountDocRef, { ownedPlants: updatedOwnedPlants });
       console.log(`Owner's ownedPlants updated successfully after deleting plant ${plantId}`);
 
-      // Update the local `currentAccount` to reflect the deletion
+      // updates the local account
       this.currentAccount = {
         ...this.currentAccount,
         ownedPlants: updatedOwnedPlants,
@@ -268,6 +258,7 @@ export class houseplantService {
   }
 
   async fetchAccountPlants(): Promise<Plant[]> {
+    // fetches the plants owned by the current account
     try {
       if (!this.currentAccount) {
         throw new Error('No current account is logged in');
@@ -360,22 +351,23 @@ export class houseplantService {
   
       console.log('Plants to monitor:', this.ownedPlantsData);
       for (const plant of this.ownedPlantsData) {
-        // Check if the plant has moisture readings
+
+        // checks + maintains moisture levels
         if (plant.moistureLog && plant.moistureLog.length > 0) {
-            // Get the latest moisture reading
+            // gets the latest moisture data from the moistureLog array
             const latestMoisture = plant.moistureLog[plant.moistureLog.length - 1];
             
-            // Check if moisture is below threshold
-            const lastWateringTime = plant.waterLog[plant.waterLog.length-1]; // gets the last watering time
-            const currentTime = Timestamp.now(); // gets the current time in seconds
-            const timeDifference = currentTime.seconds - lastWateringTime.seconds; // calculates the time difference in seconds
+            const lastWateringTime = plant.waterLog[plant.waterLog.length-1]; 
+            const currentTime = Timestamp.now();
+            const timeDifference = currentTime.seconds - lastWateringTime.seconds; 
+
             // waters the plant if necessary (allowing for a 10 minute cooldown)
             if (latestMoisture.number < plant.minimumMoisture && timeDifference > 600) {
                 console.log(`${plant.name} needs water! Current moisture: ${latestMoisture.number}%, Minimum: ${plant.minimumMoisture}%`);
-                // Publish MQTT command to water the plant
                 await this.waterPlant(plant.id);
             }
-        // Check if light is below threshold for the last 48 hours
+
+        // checks if light is below threshold for the last 48 hours
         if (plant.lightLog && plant.lightLog.length > 0) {
             // filters for the last 48 hours of light data
             const oldestAllowed = Math.floor(Date.now() / 1000) - (48 * 3600); // current seconds - 48 hours in seconds
@@ -385,7 +377,7 @@ export class houseplantService {
             const numLightEventsLast48 = recentLightLogs.length;
 
             // calculates amount of light the plant has received in hours using the number of light logs and the lightPingInterval
-            const lightReceivedNanoseconds = (lightPingInterval * numLightEventsLast48);
+            const lightReceivedNanoseconds = (this.lightPingInterval * numLightEventsLast48);
             const lightReceivedHours = lightReceivedNanoseconds / 3600000000000; // convert nanoseconds to hours
 
             if (lightReceivedHours < plant.minimumLight) {
@@ -394,7 +386,7 @@ export class houseplantService {
                 this.mqttService.publish(`cs326/plantMonitor/${plant.name}/in`, `light_on_${plant.lightHours}`);
             }
         } else {
-            console.log(`No moisture data available for plant: ${plant.name}`);
+            console.log(`No sensor data available for plant: ${plant.name}`);
         }
       }
     }
@@ -412,14 +404,15 @@ export class houseplantService {
       return;
     }
 
-    // Publish the command to the MQTT broker to water the plant
+    // commands the RPi to water the plant through the MQTT broker
     this.mqttService.publish(`cs326/plantMonitor/${plant.name}/in`, `pump_on_${plant.waterVolume}`);
     console.log(`Published command to water ${plant.name} with volume ${plant.waterVolume}`);
 
-    // Add the current timestamp to the waterLog array
+    // add current timestamp to waterlog array
     const time = new Timestamp(Date.now()/1000, 0);
     plant.waterLog.push(time);
-    // Update the plant's waterLog in Firestore
+
+    // updates database
     await this.updatePlant(plant.id, { waterLog: plant.waterLog });
   }
 
@@ -457,7 +450,7 @@ export class houseplantService {
     }
   }
 
-  //Creates the user for authentication, then calls createAccount to update the database
+  // creates the user for authentication, then calls createAccount to update the database
   async createUser(email: string, password: string, newAccount: Account): Promise<void> {
     console.log('Creating user with email:', email);
     createUserWithEmailAndPassword(this.auth, email, password)
@@ -486,7 +479,6 @@ export class houseplantService {
   }  
 
   async fetchAccount(email: string): Promise<Account> {
-    // Create a proper query to find account by email
     const accountsQuery = query(
       collection(this.firestore, 'Accounts'),
       where('email', '==', email)
@@ -498,7 +490,7 @@ export class houseplantService {
       throw new Error(`Account with email ${email} not found`);
     }
 
-    // Get the first (and should be only) matching document
+    // gets the first (and should be only) matching document
     const accountData = querySnapshot.docs[0].data() as Account;
     return accountData;
   }  
@@ -509,36 +501,36 @@ export class houseplantService {
       this.user = userCredential.user;
       console.log('User logged in:', this.user);
       this.currentAccount = await this.fetchAccount(email)
-      return true;  // Return true on successful login
+      return true;  // successful login
     } catch (error) {
-      // Handle case where the error isn't an instance of Error
       console.log(error);
-      return false;
     }
+    return false; // failed login
   }
 
   async logout(): Promise<void>{
-    // Sign out from Firebase Auth
+    // sign out from Firebase Auth
     await signOut(this.auth);
     console.log('User logged out from Firebase');
 
-    // Clear user data
+    // reset session
     this.user = null;
     this.currentAccount = null;
-    this.ownedPlantsData = [];
+    this.ownedPlantsData = [];    
 
-    // Clear MQTT subscriptions for each plant
+    // delete MQTT subscriptions for each plant
     if (this.ownedPlantsData) {
       for (const plant of this.ownedPlantsData) {
         this.mqttService.unsubscribe(`cs326/plantMonitor/${plant.name}/out/#`);
       }
     }
     
-    // Navigate to home page
+    // reset to home page
     await this.router.navigate(['/']);
   }
 
   async convertImageToBase64(file: File): Promise<string> {
+    // converts an image file to a base64 string
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {

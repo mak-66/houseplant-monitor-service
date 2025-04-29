@@ -26,18 +26,12 @@ export class DetailComponent implements OnInit, AfterViewInit {
   plant: Plant | null = null;
   plantId: string = '';
 
-  // Basic Info
+  // local variables for plant settings
   plantName: string = '';
-
-  // Moisture and Water Settings
-  waterVolume: number = 0;      // already exists
-  moistureLevel: number = 0;    // already exists
-
-  // Light Settings
+  waterVolume: number = 0;
+  moistureLevel: number = 0;
   minimumLight: number = 0;
   lightHours: number = 0;
-
-  // Hardware Configuration
   moistureChannelNum: number = 0;
   lightChannelNum: number = 0;
   pumpNum: number = 0;
@@ -48,64 +42,62 @@ export class DetailComponent implements OnInit, AfterViewInit {
   updateSubscription: Subscription | null = null;
 
 
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private houseplantService: houseplantService,
-  ) {}
+    constructor(
+        private route: ActivatedRoute,
+        private router: Router,
+        private houseplantService: houseplantService,
+    ) {}
 
-  async loadPlantDetails() {
-    try {
-        if (!this.plantId) {
-            console.error('No plant ID provided');
-            return;
-        }
-        const returnedPlant = await this.houseplantService.fetchPlantByID(this.plantId);
-        if (returnedPlant) {
-            this.plant = returnedPlant as Plant;
-            this.plantName = this.plant.name;
-            this.waterVolume = this.plant.waterVolume;
-            this.moistureLevel = this.plant.minimumMoisture;
-            this.minimumLight = this.plant.minimumLight;
-            this.lightHours = this.plant.lightHours;
-            this.moistureChannelNum = this.plant.moistureChannelNum;
-            this.lightChannelNum = this.plant.lightChannelNum;
-            this.pumpNum = this.plant.pumpNum;
-            this.lightActuatorNum = this.plant.lightActuatorNum;
-        } else {
-            console.error('Plant not found');
-            this.router.navigate(['/gallery']);
-            return;
-        }
-
-        if (this.charts.length > 0) {
-            this.updateCharts();
-        } else {
-            this.initializeCharts();
-        }
-    } catch (error) {
-        console.error('Error loading plant details:', error);
-        this.router.navigate(['/gallery']);
+    ngOnInit() {
+        this.route.params.subscribe(params => {
+            this.plantId = params['plantId'];
+            console.log('Plant ID from route:', this.plantId);
+            this.loadPlantDetails();
+            this.startAutoUpdate();
+        });
     }
-}
 
-  ngOnInit() {
-    this.route.params.subscribe(params => {
-      this.plantId = params['plantId'];
-      console.log('Plant ID from route:', this.plantId);
-      this.loadPlantDetails();
-      this.startAutoUpdate();
-    });
-  }
+    async loadPlantDetails() {
+    // fetches the plant's information using the plantId from the route
+        try {
+            const returnedPlant = await this.houseplantService.fetchPlantByID(this.plantId);
+            if (returnedPlant) {
+                this.plant = returnedPlant as Plant;
+                this.plantName = this.plant.name;
+                this.waterVolume = this.plant.waterVolume;
+                this.moistureLevel = this.plant.minimumMoisture;
+                this.minimumLight = this.plant.minimumLight;
+                this.lightHours = this.plant.lightHours;
+                this.moistureChannelNum = this.plant.moistureChannelNum;
+                this.lightChannelNum = this.plant.lightChannelNum;
+                this.pumpNum = this.plant.pumpNum;
+                this.lightActuatorNum = this.plant.lightActuatorNum;
+            } else {
+                console.error('Plant not found');
+                this.router.navigate(['/gallery']);
+                return;
+            }
+
+            if (this.charts.length > 0) {
+                this.updateCharts();
+            } else {
+                this.initializeCharts();
+            }
+        } catch (error) {
+            console.error('Error loading plant details:', error);
+            this.router.navigate(['/gallery']);
+        }
+    }   
 
   ngAfterViewInit() {
     if (this.plant) {
+    // only initialize charts if plant data is available
       this.initializeCharts();
     }
   }
 
   ngOnDestroy() {
-    // Clean up subscription when component is destroyed
+    // clean up subscription when component is destroyed
     if (this.updateSubscription) {
         this.updateSubscription.unsubscribe();
     }
@@ -114,6 +106,7 @@ export class DetailComponent implements OnInit, AfterViewInit {
   }
 
   async updateSettings() {
+    // synchonizes the local variables with the plant settings and updates the plant settings in the database
     try {
         const updates: Partial<Plant> = {
             name: this.plantName,

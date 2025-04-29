@@ -11,6 +11,7 @@ export interface MqttMessage {
   providedIn: 'root'
 })
 export class MqttService {
+  // handles communication with the MQTT broker
   private client!: mqtt.MqttClient;
   private messageSubject = new BehaviorSubject<MqttMessage | null>(null);
   public messages$ = this.messageSubject.asObservable();
@@ -20,11 +21,11 @@ export class MqttService {
   }
 
   private connectToBroker() {
-    const brokerUrl = 'wss://iot.cs.calvin.edu:8083/mqtt'; // WebSocket URL for MQTT broker
+    const brokerUrl = 'wss://iot.cs.calvin.edu:8083/mqtt';
     const options: mqtt.IClientOptions  = {
-      username: 'cs326', // if authentication is required
-      password: 'piot',  //A: set user and password
-      protocol: 'mqtts', //A: set protocol to mqtts
+      username: 'cs326',
+      password: 'piot',
+      protocol: 'mqtts',
     };
 
     this.client = mqtt.connect(brokerUrl, options);

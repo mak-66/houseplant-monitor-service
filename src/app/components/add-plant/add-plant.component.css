@@ -103,14 +103,8 @@ label {
 }
 
 .input-field.ng-invalid.ng-touched {
-    border-color: #dc3545;
-    box-shadow: 0 0 0 0.2rem rgba(220,53,69,.25);
-}
-
-.error-message {
-    color: #dc3545;
-    font-size: 0.875rem;
-    margin-top: 0.25rem;
+    border-color: #c7081b;
+    border-width: 2px;
 }
 
 .form-group {

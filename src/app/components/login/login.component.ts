@@ -17,25 +17,21 @@ export class LoginComponent {
   password: string = ''; // Variable for password
   loggedIn: boolean = true;
 
-  // upon initialization, logout the user
+  // upon initialization, logout the user to reset the session
   ngOnInit(): void {
     this.houseplantService.logout();
-
   }
 
-  // Method to handle login
   async onLogin(): Promise<void> {
     try {
-      // Call the login method of toolshedService with email and password
       this.loggedIn = await this.houseplantService.login(this.email, this.password);
       console.log('Login successful');
       //redirect to a different page after successful login
-      // if(this.loggedIn){
+      if(this.loggedIn){
         this.router.navigate(['/gallery']);  // Navigate to the profile page
-      // }
+      }
     } catch (error) {
       console.error('Login failed:', error);
-      // Optionally, display an error message to the user
     }
   }
   async signup(): Promise<void>{
