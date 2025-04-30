@@ -358,7 +358,7 @@ export class houseplantService {
             // gets the latest moisture data from the moistureLog array
             const latestMoisture = plant.moistureLog[plant.moistureLog.length - 1];
             
-            let timeDifference = 1000;
+            let timeDifference = 10000; // default if the plant has never been watered
             // if the waterlog has timestamps:
             if (plant.waterLog && plant.waterLog.length > 0) {
               const lastWateringTime = plant.waterLog[plant.waterLog.length-1];
@@ -413,7 +413,7 @@ export class houseplantService {
     this.mqttService.publish(`cs326/plantMonitor/${plant.name}/in`, `pump_on_${plant.waterVolume}`);
     console.log(`Published command to water ${plant.name} with volume ${plant.waterVolume}`);
 
-    // add current timestamp to waterlog array
+    // add current timestamp to waterlog array (converting milliseconds to seconds)
     const time = new Timestamp(Date.now()/1000, 0);
     plant.waterLog.push(time);
 
