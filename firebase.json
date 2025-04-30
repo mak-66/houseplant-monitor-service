@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": "public",
+    "public": ".\\dist\\houseplant-monitor-backend\\browser",
     "ignore": [
       "firebase.json",
       "**/.*",
