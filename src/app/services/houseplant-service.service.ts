@@ -193,8 +193,8 @@ export class houseplantService {
       // updates the local plant data
       this.ownedPlantsData[plantIndex] = { ...this.ownedPlantsData[plantIndex], ...updates };
       
-      // checks to see if the plant name is being updated
-      if (updates.name) {
+      // checks to see if rpi needs to be updated
+      if (updates.name || updates.moistureChannelNum || updates.lightChannelNum || updates.pumpNum || updates.lightActuatorNum) {
         // publishes the updated plant data to the MQTT broker
           // delete the plant in mqtt
         const plant = this.ownedPlantsData[plantIndex];
