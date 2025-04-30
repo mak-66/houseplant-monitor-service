@@ -358,9 +358,13 @@ export class houseplantService {
             // gets the latest moisture data from the moistureLog array
             const latestMoisture = plant.moistureLog[plant.moistureLog.length - 1];
             
-            const lastWateringTime = plant.waterLog[plant.waterLog.length-1]; 
-            const currentTime = Timestamp.now();
-            const timeDifference = currentTime.seconds - lastWateringTime.seconds; 
+            let timeDifference = 1000;
+            // if the waterlog has timestamps:
+            if (plant.waterLog && plant.waterLog.length > 0) {
+              const lastWateringTime = plant.waterLog[plant.waterLog.length-1];
+              const currentTime = Timestamp.now();
+              timeDifference = currentTime.seconds - lastWateringTime.seconds; 
+            }   
 
             // waters the plant if necessary (allowing for a 10 minute cooldown)
             if (latestMoisture.number < plant.minimumMoisture && timeDifference > 600) {
