@@ -7,7 +7,7 @@ import { Plant } from '../../services/houseplant-service.service';
 import { Timestamp } from '@angular/fire/firestore';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms'; // Import FormsModule
-import { interval, Subscription } from 'rxjs';
+import { interval, last, Subscription } from 'rxjs';
 
 Chart.register(...registerables);
 
@@ -119,6 +119,7 @@ export class DetailComponent implements OnInit, AfterViewInit {
             pumpNum: this.pumpNum,
             lightActuatorNum: this.lightActuatorNum
         };
+        console.log('Updating plant settings:', updates);
         await this.houseplantService.updatePlant(this.plant!.id, updates);
         console.log('Plant settings updated successfully');
     } catch (error) {
@@ -162,7 +163,7 @@ export class DetailComponent implements OnInit, AfterViewInit {
   private getMoistureData(): number[] {
     if (!this.plant?.moistureLog) return [];
     
-    // get the last 30 days of data based on timestamp
+    // gets the last 30 days of data based on timestamp
     const sortedLog = [...this.plant.moistureLog].sort((a, b) =>
         a.Timestamp.seconds - b.Timestamp.seconds
     ).filter(log => {
@@ -177,7 +178,6 @@ export class DetailComponent implements OnInit, AfterViewInit {
 
   private getTemperatureData(): number[] {
     if (!this.plant?.temperatureLog) return [];
-    // Sort by timestamp to ensure chronological order
     const sortedLog = [...this.plant.temperatureLog].sort((a, b) => 
         a.Timestamp.seconds - b.Timestamp.seconds
     );
@@ -196,7 +196,7 @@ export class DetailComponent implements OnInit, AfterViewInit {
   private getSunlightHours(): number[] {
     if (!this.plant?.lightLog) return [];
     
-    // Group timestamps by day
+    // groups the timestamps by day
     const dailyCounts = new Map<string, number>();
     
     this.plant.lightLog.forEach(timestamp => {
@@ -204,16 +204,22 @@ export class DetailComponent implements OnInit, AfterViewInit {
         const dateKey = date.toLocaleDateString();
         dailyCounts.set(dateKey, (dailyCounts.get(dateKey) || 0) + 1);
     });
-
-    // Convert to array of counts in chronological order
     const sortedDates = Array.from(dailyCounts.keys()).sort((a, b) => 
         new Date(a).getTime() - new Date(b).getTime()
     );
 
     // get the last 30 days of data
     const lastMonth = sortedDates.slice(-30);
+
+    // goes through the date map and converts the counts into integers representing the number of hours of light
+    const lastMonthHours = lastMonth.map(date => {
+        const count = dailyCounts.get(date) || 0;
+        const nanoseconds = count * this.houseplantService.lightPingInterval;
+        const hours = nanoseconds  / (3600000000000); // convert nanoseconds to hours
+        return parseFloat(hours.toFixed(2)); // limit to 2 decimal places
+    });
     
-    return lastMonth.map(date => dailyCounts.get(date) || 0);
+    return lastMonthHours;
   }
 
   private initializeCharts() {
@@ -264,7 +270,7 @@ export class DetailComponent implements OnInit, AfterViewInit {
             data: {
                 labels: uniqueDates,
                 datasets: [{
-                    label: 'Light Events per Day',
+                    label: 'Hours of Sunlight',
                     data: dailySunlight,
                     backgroundColor: 'rgb(255, 205, 86)'
                 }]

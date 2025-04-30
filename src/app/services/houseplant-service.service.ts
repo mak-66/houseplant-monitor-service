@@ -185,25 +185,24 @@ export class houseplantService {
         throw new Error(`Plant with ID ${plantId} does not exist`);
       }
   
-      await updateDoc(plantDocRef, updates);
-
-      // updates local version of plant
+      await updateDoc(plantDocRef, updates);    
+        
       const plantIndex = this.ownedPlantsData.findIndex(plant => plant.id === plantId);
-      if (plantIndex !== -1) {
-        this.ownedPlantsData[plantIndex] = { ...this.ownedPlantsData[plantIndex], ...updates };
-      } else {
-        console.error(`Plant with ID ${plantId} not found in local data`);
-      }
-
-      // publishes the updated plant data to the MQTT broker
-          // delete the plant in mqtt
-      const plant = this.ownedPlantsData[plantIndex];
-      const plantName = plant ? plant.name : 'Unknown Plant';
-      this.mqttService.publish('cs326/plantMonitor/utility', `remove ${plantName}`);
+      // gets the old plant name for the mqtt publish command
+      const oldPlantName = this.ownedPlantsData[plantIndex].name;
+      // updates the local plant data
+      this.ownedPlantsData[plantIndex] = { ...this.ownedPlantsData[plantIndex], ...updates };
       
+      // checks to see if the plant name is being updated
+      if (updates.name) {
+        // publishes the updated plant data to the MQTT broker
+          // delete the plant in mqtt
+        const plant = this.ownedPlantsData[plantIndex];
+        const plantName = plant ? plant.name : 'Unknown Plant';
+        this.mqttService.publish('cs326/plantMonitor/utility', `remove ${oldPlantName}`);        
           // create the plant with the new local data
-          //“add <plant name> <moistureChannelNum> <lightChannelNum> <pumpNum> <lightActuatorNum>”
-      this.mqttService.publish('cs326/plantMonitor/utility', `add ${plantName} ${plant.moistureChannelNum} ${plant.lightChannelNum} ${plant.pumpNum} ${plant.lightActuatorNum}`);
+        this.mqttService.publish('cs326/plantMonitor/utility', `add ${plantName} ${plant.moistureChannelNum} ${plant.lightChannelNum} ${plant.pumpNum} ${plant.lightActuatorNum}`);
+      }      
 
     } catch (error) {
       console.error('Error updating plant:', error);
@@ -217,8 +216,11 @@ export class houseplantService {
         throw new Error('No current account is logged in');
       }
 
-      const plant = this.ownedPlantsData.find(p => p.id === plantId);
-      const plantName = plant ? plant.name : 'Unknown Plant';
+      const plant = await this.fetchPlantByID(plantId);
+      if (!plant) {
+        throw new Error(`Plant with ID ${plantId} not found`);
+      }
+      const plantName = plant.name!;
   
       // firestore delete plant
       const plantDocRef = doc(this.firestore, 'Plants', plantId);
@@ -235,7 +237,6 @@ export class houseplantService {
         throw new Error(`No account found with email: ${this.currentAccount.email}`);
       }
       const accountDocRef = querySnapshot.docs[0].ref;
-
       // removes from owner's owned plants list
       const updatedOwnedPlants = this.currentAccount.ownedPlants.filter(id => id !== plantId);
       await updateDoc(accountDocRef, { ownedPlants: updatedOwnedPlants });

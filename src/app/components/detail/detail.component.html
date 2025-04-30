@@ -22,7 +22,27 @@
                         placeholder="Plant Name">
                 </div>
             </div>
-    
+
+            <div class="charts-section">
+                <div class="chart-container">
+                    <h3>Moisture History</h3>
+                    <canvas #moistureChart id="moistureChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Daily Sunlight Hours</h3>
+                    <canvas #sunlightChart id="sunlightChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Temperature History</h3>
+                    <canvas #temperatureChart id="temperatureChart"></canvas>
+                </div>
+            </div>
+
+            <div class="buttons-section">
+                <button (click)="back()" id="back-button" class="button">Back to Gallery</button>
+                <button (click)="deletePlant()" id="delete-button" class="button">Delete Plant</button>
+            </div>
+
             <!-- Water Settings Section -->
             <div class="settings-section">
                 <h3>Watering Settings</h3>
@@ -117,24 +137,6 @@
                 <button (click)="toggleLight()" id="light-button" class="button">
                     {{isLightOn ? 'Turn Light Off' : 'Turn Light On'}}
                 </button>
-            </div>
-            <div class="charts-section">
-                <div class="chart-container">
-                    <h3>Moisture History</h3>
-                    <canvas #moistureChart id="moistureChart"></canvas>
-                </div>
-                <div class="chart-container">
-                    <h3>Daily Sunlight Hours</h3>
-                    <canvas #sunlightChart id="sunlightChart"></canvas>
-                </div>
-                <div class="chart-container">
-                    <h3>Temperature History</h3>
-                    <canvas #temperatureChart id="temperatureChart"></canvas>
-                </div>
-            </div>
-            <div class="buttons-section">
-                <button (click)="back()" id="back-button" class="button">Back to Gallery</button>
-                <button (click)="deletePlant()" id="delete-button" class="button">Delete Plant</button>
             </div>
 
         </div>
