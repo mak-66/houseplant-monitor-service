@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import mqtt from 'mqtt';
+import {environment} from '../../../environment.js';
 
-export interface MqttMessage {
+export default interface MqttMessage {
   topic: string;
   payload: string;
 }
@@ -21,13 +22,12 @@ export class MqttService {
   }
 
   private connectToBroker() {
-    const brokerUrl = 'wss://iot.cs.calvin.edu:8083/mqtt';
+    const brokerUrl = environment.mqtt.brokerUrl;
     const options: mqtt.IClientOptions  = {
-      username: 'cs326',
-      password: 'piot',
+      username: environment.mqtt.username,
+      password: environment.mqtt.password,
       protocol: 'mqtts',
     };
-
     this.client = mqtt.connect(brokerUrl, options);
 
     this.client.on('connect', () => {

@@ -1,21 +1,27 @@
 import { Injectable } from '@angular/core';
-import { CanActivate, Router, UrlTree } from '@angular/router';
-import { AuthService } from './auth.service';
+import { CanActivate, ActivatedRouteSnapshot, RouterStateSnapshot, Router } from '@angular/router';
+import { Observable } from 'rxjs';
+import { houseplantService } from './services/houseplant-service.service';  // Adjust the path to your service
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthGuard implements CanActivate {
+  constructor(private houseplantService: houseplantService, private router: Router) {}
 
-  constructor(private authService: AuthService, private router: Router) {}
+  canActivate(
+    next: ActivatedRouteSnapshot,
+    state: RouterStateSnapshot
+  ): Observable<boolean> | Promise<boolean> | boolean {
+    const user = this.houseplantService.user; // This assumes your houseplantService holds user info
 
-  canActivate(): boolean | UrlTree {
-    const isLoggedIn = this.authService.isLoggedIn(); // Replace with your actual logic
-    if (isLoggedIn) {
+    if (user) {
+      // If user is logged in, allow access
       return true;
+    } else {
+      // If not logged in, redirect to login page
+      this.router.navigate(['/']);
+      return false;
     }
-
-    // 👇 Return a UrlTree that redirects to the login route ('')
-    return this.router.parseUrl('');
   }
 }

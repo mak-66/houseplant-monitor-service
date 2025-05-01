@@ -3,7 +3,7 @@ import { Timestamp, query, orderBy, where, addDoc, deleteDoc, getDoc, getDocs, s
 import { User, Auth, getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "@angular/fire/auth";
 import { Observable, firstValueFrom,map,BehaviorSubject, combineLatest } from 'rxjs';
 import { Router } from '@angular/router';
-import { MqttMessage, MqttService } from './mqtt.service';
+import MqttMessage, { MqttService } from './mqtt.service';
 
 export interface Account {
   ownedPlants: string[];
