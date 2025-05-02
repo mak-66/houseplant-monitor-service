@@ -117,8 +117,9 @@ export class houseplantService {
             this.handleMqttMessage(message);
           });
 
-          // monitors the plant condition for maintenance
-          setInterval(() => this.monitorPlantConditions(), 30000);
+          // monitors the plant condition for maintenance every 30 minutes
+          // 1800000 milliseconds = 30 minutes
+          setInterval(() => this.monitorPlantConditions(), 1800000);
         });
       } else {
         this.currentAccount = null;
@@ -325,7 +326,7 @@ export class houseplantService {
           break;
         case 'light':
           const lightLevel = (parseInt(message.payload));
-          if (lightLevel > 0) { // If light level is above 0, add a timestamp to the lightLog    
+          if (lightLevel > 0) { // if light level is above 0, add a timestamp to the lightLog    
             plant.lightLog.push(new Timestamp(Date.now()/1000, 0));
             this.updatePlant(plant.id, { lightLog: plant.lightLog });
           }
@@ -357,17 +358,8 @@ export class houseplantService {
         if (plant.moistureLog && plant.moistureLog.length > 0) {
             // gets the latest moisture data from the moistureLog array
             const latestMoisture = plant.moistureLog[plant.moistureLog.length - 1];
-            
-            let timeDifference = 10000; // default if the plant has never been watered
-            // if the waterlog has timestamps:
-            if (plant.waterLog && plant.waterLog.length > 0) {
-              const lastWateringTime = plant.waterLog[plant.waterLog.length-1];
-              const currentTime = Timestamp.now();
-              timeDifference = currentTime.seconds - lastWateringTime.seconds; 
-            }   
 
-            // waters the plant if necessary (allowing for a 10 minute cooldown)
-            if (latestMoisture.number < plant.minimumMoisture && timeDifference > 600) {
+            if (latestMoisture.number < plant.minimumMoisture) {
                 console.log(`${plant.name} needs water! Current moisture: ${latestMoisture.number}%, Minimum: ${plant.minimumMoisture}%`);
                 await this.waterPlant(plant.id);
             }
@@ -389,6 +381,8 @@ export class houseplantService {
                 console.log(`${plant.name} needs light! Light in last 2 days: ${lightReceivedHours}`);
                 // Publish MQTT command to turn on the light actuator
                 this.mqttService.publish(`cs326/plantMonitor/${plant.name}/in`, `light_on_${plant.lightHours}`);
+            } else {
+                this.mqttService.publish(`cs326/plantMonitor/${plant.name}/in`, `light_off_${plant.lightHours}`);
             }
         } else {
             console.log(`No sensor data available for plant: ${plant.name}`);

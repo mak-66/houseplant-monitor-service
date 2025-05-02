@@ -56,7 +56,7 @@ import smbus
 
 #
 import pigpio
-import os, time
+import time
 import lgpio
 
 # from lab4: A/D Conversion
