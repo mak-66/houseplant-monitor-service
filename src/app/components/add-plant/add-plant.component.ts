@@ -14,6 +14,7 @@ import { Timestamp } from '@angular/fire/firestore';
 export class AddPlantComponent {
   private router = inject(Router);
   private houseplantService = inject(houseplantService);
+  uploadError: boolean = false;
   selectedImage?: File;
   newPlant: Partial<Plant> = {
     name: '',
@@ -49,17 +50,17 @@ export class AddPlantComponent {
   async onSubmit() {
     try {
       const plantId = await this.houseplantService.addPlant(this.newPlant, this.selectedImage);
-      if (plantId !== "Failed to add plant") {
-        console.log('Plant added successfully');
-        // Send MQTT message to configure the new plant
-        this.houseplantService.mqttService.publish(
-          'cs326/plantMonitor/utility',
-          `add ${this.newPlant.name} ${this.newPlant.moistureChannelNum} ${this.newPlant.lightChannelNum} ${this.newPlant.pumpNum} ${this.newPlant.lightActuatorNum}`
-        );
-        this.router.navigate(['/gallery']);
-      }
+      console.log(`Plant ${plantId} added successfully`);
+      // Send MQTT message to configure the new plant
+      this.houseplantService.mqttService.publish(
+        'cs326/plantMonitor/utility',
+        `add ${this.newPlant.name} ${this.newPlant.moistureChannelNum} ${this.newPlant.lightChannelNum} ${this.newPlant.pumpNum} ${this.newPlant.lightActuatorNum}`
+      );
+      this.router.navigate(['/gallery']);
+      this.uploadError = false;
     } catch (error) {
       console.error('Error adding plant:', error);
+      this.uploadError = true;
     }
   }
 

@@ -36,6 +36,7 @@ export class DetailComponent implements OnInit, AfterViewInit {
   lightChannelNum: number = 0;
   pumpNum: number = 0;
   lightActuatorNum: number = 0;
+  selectedImage?: File;
   
   charts: Chart[] = [];
   isLightOn: boolean = false;
@@ -119,13 +120,26 @@ export class DetailComponent implements OnInit, AfterViewInit {
             pumpNum: this.pumpNum,
             lightActuatorNum: this.lightActuatorNum
         };
-        console.log('Updating plant settings:', updates);
+        // if an image is selected, include it in the updates
+        if (this.selectedImage) {
+            updates.plantImage = await this.houseplantService.convertImageToBase64(this.selectedImage);
+        }
         await this.houseplantService.updatePlant(this.plant!.id, updates);
         console.log('Plant settings updated successfully');
     } catch (error) {
         console.error('Error updating plant settings:', error);
     }
-}
+  }
+
+  onImageSelected(event: any) {
+    const file = event.target.files[0];
+    console.log('Selected file:', file);
+    if (file && file.type.startsWith('image/')) {
+      this.selectedImage = file;
+    } else {
+        console.error('Invalid image file selected');
+    }
+  }
 
   private startAutoUpdate() {
     // Update every 30 seconds

@@ -118,8 +118,8 @@ export class houseplantService {
           });
 
           // monitors the plant condition for maintenance every 30 minutes
-          // 1800000 milliseconds = 30 minutes
-          setInterval(() => this.monitorPlantConditions(), 1800000);
+          const millisecondsIn30Minutes = 1800000;
+          setInterval(() => this.monitorPlantConditions(), millisecondsIn30Minutes);
         });
       } else {
         this.currentAccount = null;
@@ -367,7 +367,8 @@ export class houseplantService {
         // checks if light is below threshold for the last 48 hours
         if (plant.lightLog && plant.lightLog.length > 0) {
             // filters for the last 48 hours of light data
-            const oldestAllowed = Math.floor(Date.now() / 1000) - (48 * 3600); // current seconds - 48 hours in seconds
+            const twoDaysInSeconds = 48 * 3600; // 48 hours in seconds
+            const oldestAllowed = Math.floor(Date.now() / 1000) - twoDaysInSeconds; // only allows for 2 day old data
             const recentLightLogs = plant.lightLog.filter(log => log.seconds >= oldestAllowed);
 
             // gets the number of light events in the last 48 hours
@@ -375,7 +376,8 @@ export class houseplantService {
 
             // calculates amount of light the plant has received in hours using the number of light logs and the lightPingInterval
             const lightReceivedNanoseconds = (this.lightPingInterval * numLightEventsLast48);
-            const lightReceivedHours = lightReceivedNanoseconds / 3600000000000; // convert nanoseconds to hours
+            const nanosecondsInHour = 3600000000000; // 1 hour in nanoseconds
+            const lightReceivedHours = lightReceivedNanoseconds / nanosecondsInHour;
 
             if (lightReceivedHours < plant.minimumLight) {
                 console.log(`${plant.name} needs light! Light in last 2 days: ${lightReceivedHours}`);

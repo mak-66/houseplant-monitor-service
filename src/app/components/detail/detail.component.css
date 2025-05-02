@@ -103,6 +103,42 @@ canvas {
     height: 100% !important;
 }
 
+.image-upload {
+    text-align: center;
+    padding: 2rem;
+    border: 2px dashed #4CAF50;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.image-upload:hover {
+    background-color: #f8f8f8;
+    border-color: #45a049;
+}
+
+.image-upload input[type="file"] {
+    display: none;
+}
+
+.image-upload label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+}
+
+.image-upload i {
+    font-size: 2rem;
+    color: #4CAF50;
+    margin-bottom: 0.5rem;
+}
+
+.image-upload .upload-text {
+    color: #666;
+    font-size: 0.9rem;
+}
+
 .outer-box {
     background-color: white;
     padding: 20px;

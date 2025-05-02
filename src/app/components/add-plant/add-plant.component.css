@@ -110,3 +110,9 @@ label {
 .form-group {
     margin-bottom: 1rem;
 }
+
+.error-message {
+    color: #c7081b;
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+}

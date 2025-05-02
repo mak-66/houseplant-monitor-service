@@ -130,6 +130,24 @@
                         min="0">
                 </div>
             </div>
+
+            <div class="settings-section">
+                <h3>Image Update</h3>
+                <div class="form-group">
+                    <div class="image-upload">
+                        <label for="plantImage">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <span class="upload-text">Click to upload plant image</span>
+                            <span class="upload-text">(highly size limited)</span>
+                        </label>
+                        <input 
+                            type="file" 
+                            id="plantImage"
+                            (change)="onImageSelected($event)"
+                            accept="image/*">
+                    </div>
+                </div>
+            </div>
     
             <div class="buttons-section">
                 <button type="submit" id="submit-button" class="button" (click)="updateSettings()">Update Settings</button>

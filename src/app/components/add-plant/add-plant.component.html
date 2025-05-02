@@ -129,7 +129,7 @@
                     <label for="plantImage">
                         <i class="fas fa-cloud-upload-alt"></i>
                         <span class="upload-text">Click to upload plant image</span>
-                        <span class="upload-text">or drag and drop here</span>
+                        <span class="upload-text">(highly size limited)</span>
                     </label>
                     <input 
                         type="file" 
@@ -145,6 +145,11 @@
                 [disabled]="!plantForm.form.valid">
                 Add Plant
             </button>
+
+            @if (uploadError) {
+                <!-- displays a red notice that the upload failed -->
+                <div class="error-message">Upload failed. Please try again (likely image related).</div>
+            }
         </form>
     </div>
     <div class="back">
