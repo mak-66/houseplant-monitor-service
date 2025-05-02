@@ -47,7 +47,7 @@ export class houseplantService {
   public ownedPlantsData: Plant[] = [];
   accountCollection: CollectionReference;
   public accounts$: Observable<Account[]>;
-  public mqttService: MqttService = inject(MqttService); // Inject the MqttService
+  public mqttService: MqttService = inject(MqttService);
   
   // set variable regarding how often the light sensors ping the broker (in nanoseconds)
   public lightPingInterval = 1000000000000; // 1000 seconds

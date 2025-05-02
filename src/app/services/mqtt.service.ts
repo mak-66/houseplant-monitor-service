@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import mqtt from 'mqtt';
-import {environment} from '../../../environment.js';
+import {environment} from '../../../.environment.js';
 
 export default interface MqttMessage {
   topic: string;
