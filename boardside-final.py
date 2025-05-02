@@ -4,7 +4,7 @@
 # Reads in data from moisture, light, and temperature sensors and publishes to MQTT broker
 # Controls LED and water pumps in response to MQTT messages
 
-# Acknowledgements: CS 326 lab handouts were used as a starting point for this code.
+# Acknowledgements: CS 326 lab handouts were used as a starting point for this code and then heavily modified to adapt to our purposes.
 """
 # TERMINAL COMMANDS BEFORE START:
 """ 
