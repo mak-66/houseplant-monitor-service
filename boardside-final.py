@@ -1,3 +1,11 @@
+"""
+# File: boardside-final.py
+# Python3 program running the Raspberry Pi
+# Reads in data from moisture, light, and temperature sensors and publishes to MQTT broker
+# Controls LED and water pumps in response to MQTT messages
+
+# Acknowledgements: CS 326 lab handouts were used as a starting point for this code and then heavily modified to adapt to our purposes.
+"""
 # TERMINAL COMMANDS BEFORE START:
 """ 
 cd houseplantMonitor
@@ -35,14 +43,6 @@ mosquitto_sub -h iot.cs.calvin.edu -t cs326/plantMonitor/+/out/# -u cs326 -P pio
 mosquitto_sub -h iot.cs.calvin.edu -t cs326/plantMonitor/Keanu_Leaves/out/moisture -u cs326 -P piot 
 """
 
-
-
-#TODO: handle sensor errors
-#TODO: calibrate pump input
-#TODO: implement utility channel, storing plant data in file, etc.
-#TODO: make publishing frequency easily editable
-#TODO: set up storing data for frequency duration then publishing averages
-#TODO: calibrate temperature
 # from mqtt-led.py:
 from gpiozero import LED
 import paho.mqtt.client as mqtt
@@ -50,13 +50,8 @@ import paho.mqtt.client as mqtt
 # from lab4: temperature reader
 import smbus
 
-#from lab5: PWM
-#from gpiozero import PWMOutputDevice
-#from gpiozero import Servo
-
-#
 import pigpio
-import time
+import os, time
 import lgpio
 
 # from lab4: A/D Conversion
@@ -70,18 +65,6 @@ from adafruit_mcp3xxx.analog_in import AnalogIn
 # in order to allow for environment variables
 # all .env usage from https://stackoverflow.com/questions/4906977/how-can-i-access-environment-variables-in-python
 import os
-
-
-
-""" with open("plantVars.txt", "r") as file:
-    lines = file.readlines() """
-
-#   GPIO PINS:  
-temperatureDatePin = 2
-temperatureClockPin = 3
-#microservoPin = 18  #hardware PWM
-
-
 
 # Other constants:
 TOPIC_STEM = 'cs326/plantMonitor/'
@@ -104,26 +87,29 @@ spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
 cs = digitalio.DigitalInOut(board.D5)
 # create the mcp object
 mcp = MCP.MCP3008(spi, cs)
-#SERVO = Servo(16)
-lightChannel = AnalogIn(mcp, MCP.P0)
-moistureChannel = AnalogIn(mcp, MCP.P1)
-light1 = LED(23)
 pi = pigpio.pi()   
 # Connect to I2C bus
 bus = smbus.SMBus(I2CBUS)
 t1 = time.time_ns()
 
-lightActuators = [light1]
+#   GPIO PINS:  
+temperatureDatePin = 2
+temperatureClockPin = 3
+
+# Object initialization for sensors and actuators. Plant data contains assignments for which index is used for each plant
+lightActuators = [LED(23)]
 pumps = [LED(16), LED(20), LED(21)]
 lightChannels = [AnalogIn(mcp, MCP.P0)]
 moistureChannels = [AnalogIn(mcp, MCP.P1), AnalogIn(mcp, MCP.P2), AnalogIn(mcp, MCP.P3), AnalogIn(mcp, MCP.P4)]
-plantData = []
 
+plantData = [] # Array holding plant names and sensor/actuator assignments
+
+# Reads stored plant names and sensor/actuator assignments from plantFile.txt and stores them in plantData
 def readPlantDataIn():
     plantFile = open("plantFile.txt", "r")
     plantFileDump = plantFile.readlines()
     plantsLength = len(plantFileDump)
-    """ [0]plant_name, [1]moistureChannel, [2]lightChannel, [3]pumpNumber, [4]lightActuatorNumber"""
+    """ [0]plant_name, [1]moistureChannelNumber, [2]lightChannelNumber, [3]pumpNumber, [4]lightActuatorNumber"""
     i = 0
     while i < plantsLength:
         line = plantFileDump[i]
@@ -139,12 +125,14 @@ def readPlantDataIn():
     plantFile.close
     return
 
+# Updates plantFile.txt to add a new plant with name and sensor/actuator assignments
 def plantDataAdd(messageString):
     plantFile = open("plantFile.txt", "a")
     string = messageString.split(' ')
     plantFile.write(f"{string[1]} {string[2]} {string[3]} {string[4]} {string[5]}\n")
     plantFile.close
 
+# Deletes the specified plant with name and sensor/actuator assignments from plantFile.txt
 def plantDataRemove(messageString):
     plantName = messageString.split(" ")[1]
     plantFile = open("plantFile.txt", "r")
@@ -163,23 +151,21 @@ def plantDataRemove(messageString):
 
 if not pi.connected:
     exit(0)
-#pi.set_PWM_frequency(microservoPin,50);   #set PWM frequency to 50Hz
+
 
 # Callback when client receives a message from the broker
 def on_message(client, data, msg):
     try:
         message_topic = msg.topic.split('/')
         message = msg.payload.decode()
-        if message_topic[2] == 'utility':
+        if message_topic[2] == 'utility': # adding/deleting plants
             if message.startswith("add"):
                 plantDataAdd(message)
             elif message.startswith("remove"):
                 plantDataRemove(message)
             readPlantDataIn()
             
-
-        #SPLIT INTO SECTIONS
-        elif message_topic[3] == 'in':
+        elif message_topic[3] == 'in': # messages with instructions for actuators
             plant_name = message_topic[2]
             i = 0
             plant_index = numPlants
@@ -187,9 +173,8 @@ def on_message(client, data, msg):
                 if plant_name == plantData[i][0]:
                     plant_index = i
                 i += 1
-
             client.publish(TOPIC_OUT, 'seen')
-            if message.startswith("pump_on_"):
+            if message.startswith("pump_on_"): # parses message to determine desired volume
                 volume = float(message.split('_')[2])
                 volume = int(volume)
                 message = "pump_on"
@@ -199,7 +184,7 @@ def on_message(client, data, msg):
                 case "turn_light_off":
                     plantData[plant_index][4].off()
                 case "pump_on":
-                    pumpDuration = volume/0.1722 + 56.7526
+                    pumpDuration = volume/0.1722 + 56.7526 # calibration forumula to convert volume to necessary pump activation duration
                     plantData[plant_index][3].on()
                     time.sleep(0.01*pumpDuration)
                     plantData[plant_index][3].off()
@@ -226,7 +211,6 @@ client.on_message = on_message
 client.connect(BROKER, PORT, KEEPALIVE)
 client.subscribe(f"{TOPIC_STEM}#", qos=QOS)
 
-# TODO: add function to store time and check, determine when to read and publish values
 readPlantDataIn()
 numPlants = len(plantData)
 
@@ -235,7 +219,7 @@ try:
         t2 = time.time_ns()
         latestTemp = 0
         moisture = 0
-        if (t2 - t1) > DELAY:
+        if (t2 - t1) > DELAY: # Waits until delay time has been reached
             try:
                 temperature = bus.read_byte(I2CADDRESS) - 9.5
                 latestTemp = temperature
@@ -252,8 +236,6 @@ try:
                     lightvalue = plantData[i][2].value>>6
                 except:
                     lightvalue = 0
-                # client.publish(f"{currentTopicStem}", currentTopicStem)
-                # client.publish(f"{currentTopicStem}/time", t2)
                 client.publish(f"{currentTopicStem}/temperature", temperature)
                 client.publish(f"{currentTopicStem}/light", lightvalue)
                 client.publish(f"{currentTopicStem}/moisture", moisture)
@@ -267,6 +249,4 @@ except KeyboardInterrupt:
     client.disconnect()
     bus.close()
     print('Done')
-
-
 
