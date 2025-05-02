@@ -11,6 +11,7 @@ pip3 install gpiozero
 pip3 install pigpio
 pip3 install lgpio
 pip3 install smbus
+pip install python-dotenv
 """
 
 # TESTING COMMANDS:
@@ -66,6 +67,11 @@ import board
 import adafruit_mcp3xxx.mcp3008 as MCP
 from adafruit_mcp3xxx.analog_in import AnalogIn
 
+# in order to allow for environment variables
+# all .env usage from https://stackoverflow.com/questions/4906977/how-can-i-access-environment-variables-in-python
+import os
+
+
 
 """ with open("plantVars.txt", "r") as file:
     lines = file.readlines() """
@@ -83,10 +89,10 @@ TOPIC_OUT = 'plantMonitorOut'
 PORT = 1883
 QOS = 0
 KEEPALIVE = 60
-BROKER = 'iot.cs.calvin.edu'
+BROKER = os.environ['BROKER']
 BROKER_AUTHENTICATION = True 
-USERNAME = 'cs326'
-PASSWORD = 'piot'
+USERNAME = os.environ['USERNAME']
+PASSWORD = os.environ['PASSWORD']
 I2CBUS = 1      # I2C bus number
 I2CADDRESS = 0x48   # TC74 I2C bus address
 DELAY = 10000000000

@@ -2,6 +2,7 @@
 
 # mqtt broker info
 .environment.ts
+.env
 
 # Compiled output
 /dist
