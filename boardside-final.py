@@ -76,7 +76,7 @@ from datetime import datetime
 
 # initializes the firebase connection
 try:
-    cred = credentials.Certificate('firebase-service-account.json')
+    cred = credentials.Certificate('houseplant-monitor-service-firebase-adminsdk-fbsvc-7db3cd2c0f.json')
     firebase_admin.initialize_app(cred)
     db = firestore.client()
     print("Firebase initialized successfully")
