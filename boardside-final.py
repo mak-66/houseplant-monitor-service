@@ -20,6 +20,7 @@ pip3 install pigpio
 pip3 install lgpio
 pip3 install smbus
 pip install python-dotenv
+pip install firebase-admin
 """
 
 # TESTING COMMANDS:
@@ -65,6 +66,72 @@ from adafruit_mcp3xxx.analog_in import AnalogIn
 # in order to allow for environment variables
 # all .env usage from https://stackoverflow.com/questions/4906977/how-can-i-access-environment-variables-in-python
 import os
+
+# allows accessing the firestore database
+# need to run the updated import command
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import firestore
+from datetime import datetime
+
+# initializes the firebase connection
+try:
+    cred = credentials.Certificate('firebase-service-account.json')
+    firebase_admin.initialize_app(cred)
+    db = firestore.client()
+    print("Firebase initialized successfully")
+    FIREBASE_ENABLED = True
+except Exception as e:
+    print(f"Firebase initialization failed: {e}")
+    FIREBASE_ENABLED = False
+
+# updates the firestore database with the sensor data
+def update_firestore(plant_name, data_type, value):
+    if not FIREBASE_ENABLED:
+        return
+    
+    try:
+        # Query to find the plant document with the matching name
+        plants_ref = db.collection('Plants')
+        query = plants_ref.where('name', '==', plant_name).limit(1)
+        plant_docs = query.stream()
+        
+        # Get the first matching document
+        plant_doc = next(plant_docs, None)
+        
+        if not plant_doc:
+            print(f"Plant '{plant_name}' not found in Firestore")
+            return
+            
+        plant_id = plant_doc.id
+        plant_ref = plants_ref.document(plant_id)
+        
+        # Create timestamp for the current time
+        timestamp = firestore.SERVER_TIMESTAMP
+        
+        # Update the appropriate log based on data type
+        if data_type == "moisture":
+            plant_ref.update({
+                'moistureLog': firestore.ArrayUnion([{
+                    'Timestamp': timestamp,
+                    'number': float(value)
+                }])
+            })
+        elif data_type == "temperature":
+            plant_ref.update({
+                'temperatureLog': firestore.ArrayUnion([{
+                    'Timestamp': timestamp,
+                    'number': float(value)
+                }])
+            })
+        elif data_type == "light" and float(value) > 0:
+            # Only log light if the value is greater than 0
+            plant_ref.update({
+                'lightLog': firestore.ArrayUnion([timestamp])
+            })
+                    
+    except Exception as e:
+        print(f"Error updating Firestore: {e}")
 
 # Other constants:
 TOPIC_STEM = 'cs326/plantMonitor/'
@@ -239,6 +306,13 @@ try:
                 client.publish(f"{currentTopicStem}/temperature", temperature)
                 client.publish(f"{currentTopicStem}/light", lightvalue)
                 client.publish(f"{currentTopicStem}/moisture", moisture)
+
+                # update Firestore directly
+                plant_name = plantData[i][0]
+                update_firestore(plant_name, "temperature", temperature)
+                update_firestore(plant_name, "light", lightvalue)
+                update_firestore(plant_name, "moisture", moisture)
+
                 i += 1
             i = 0
             t1 = time.time_ns()
